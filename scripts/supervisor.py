@@ -124,6 +124,7 @@ class Supervisor:
 
         try:
             nav_pose_origin = self.trans_listener.transformPose(origin_frame, msg)
+	    print(nav_pose_origin)
             self.x_g = nav_pose_origin.pose.position.x
             self.y_g = nav_pose_origin.pose.position.y
             quaternion = (nav_pose_origin.pose.orientation.x,
@@ -258,12 +259,14 @@ class Supervisor:
                 self.go_to_pose()
 
         elif self.mode == Mode.STOP:
-            # At a stop sign
-            self.nav_to_pose()
+	    # Check to see if the robot has stopped long enough
+	    if (self.has_stopped()):
+		self.init_crossing()
 
         elif self.mode == Mode.CROSS:
             # Crossing an intersection
-            self.nav_to_pose()
+	    if (self.has_crossed()):
+		self.nav_to_pose()
 
         elif self.mode == Mode.NAV:
             if self.close_to(self.x_g, self.y_g, self.theta_g):
