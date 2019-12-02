@@ -50,6 +50,7 @@ add_message_files(
  FILES
  DetectedObject.msg
  DetectedObjectList.msg
+ DeliveryLocation.msg
 )
 
 ## Generate services in the 'srv' folder

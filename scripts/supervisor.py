@@ -4,10 +4,12 @@ from enum import Enum
 
 import rospy
 from asl_turtlebot.msg import DetectedObject
+from asl_turtlebot.msg import DeliveryLocation
 from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
 from std_msgs.msg import Float32MultiArray, String
 import tf
+import queue
 
 class Mode(Enum):
     """State machine modes. Feel free to change."""
@@ -75,6 +77,9 @@ class Supervisor:
         self.mode = Mode.IDLE
         self.prev_mode = None  # For printing purposes
 
+        self.delivery_locations = {}
+        self.requests = queue.Queue()
+
         ########## PUBLISHERS ##########
 
         # Command pose for controller
@@ -89,7 +94,14 @@ class Supervisor:
         rospy.Subscriber('/detector/stop_sign', DetectedObject, self.stop_sign_detected_callback)
 
         # High-level navigation pose
-        rospy.Subscriber('/nav_pose', Pose2D, self.nav_pose_callback)
+        # rospy.Subscriber('/nav_pose', Pose2D, self.nav_pose_callback)
+
+        #Locations of delibery points
+        rospy.Subscriber('/new_locations', DeliveryLocation, self.new_location_callback)
+
+        
+        rospy.Subscriber('/delivery_request', String, self.request_callback)
+
 
         # If using gazebo, we have access to perfect state
         if self.params.use_gazebo:
@@ -138,11 +150,22 @@ class Supervisor:
 
         self.mode = Mode.NAV
 
-    def nav_pose_callback(self, msg):
-        self.x_g = msg.x
-        self.y_g = msg.y
-        self.theta_g = msg.theta
-        self.mode = Mode.NAV
+    # def nav_pose_callback(self, msg):
+        
+    #     self.mode = Mode.NAV
+
+    def new_location_callback(self, msg):
+        self.delivery_locations[msg.name] = msg.pose
+
+    def request_callback(self, msg):
+        if self.requests.empty():
+            for location in msg.split(','):
+                self.requests.put(location)
+            self.go_to_next_request()
+            self.mode = Mode.NAV
+
+
+
 
     def stop_sign_detected_callback(self, msg):
         """ callback for when the detector has found a stop sign. Note that
@@ -156,11 +179,18 @@ class Supervisor:
             self.init_stop_sign()
 
 
+
     ########## STATE MACHINE ACTIONS ##########
 
     ########## Code starts here ##########
     # Feel free to change the code here. You may or may not find these functions
     # useful. There is no single "correct implementation".
+    def go_to_next_request(self):
+        goal_pose = self.delivery_locations[self.requests.get()]
+        self.x_g = goal_pose.x
+        self.y_g = goal_pose.y
+        self.theta_g = goal_pose.theta
+
 
     def go_to_pose(self):
         """ sends the current desired pose to the pose controller """
@@ -219,6 +249,8 @@ class Supervisor:
         return self.mode == Mode.CROSS and \
                rospy.get_rostime() - self.cross_start > rospy.Duration.from_sec(self.params.crossing_time)
 
+
+
     ########## Code ends here ##########
 
 
@@ -244,9 +276,7 @@ class Supervisor:
             self.prev_mode = self.mode
 
         ########## Code starts here ##########
-        # TODO: Currently the state machine will just go to the pose without stopping
-        #       at the stop sign.
-
+    
         if self.mode == Mode.IDLE:
             # Send zero velocity
             self.stay_idle()
@@ -270,7 +300,10 @@ class Supervisor:
 
         elif self.mode == Mode.NAV:
             if self.close_to(self.x_g, self.y_g, self.theta_g):
-                self.mode = Mode.IDLE
+                if self.requests.empty():
+                    self.mode = Mode.IDLE
+                else:
+                    self.go_to_next_request()
             else:
                 self.nav_to_pose()
 
