@@ -165,8 +165,6 @@ class Supervisor:
             self.mode = Mode.NAV
 
 
-
-
     def stop_sign_detected_callback(self, msg):
         """ callback for when the detector has found a stop sign. Note that
         a distance of 0 can mean that the lidar did not pickup the stop sign at all """
