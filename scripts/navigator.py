@@ -288,8 +288,8 @@ class Navigator:
                 self.switch_mode(Mode.PARK)
                 return
         except:
-        rospy.loginfo("len(path_planned) attempt failed. Switching to park. Try a new path.")
-        self.switch_mode(Mode.PARK)
+            rospy.loginfo("len(path_planned) attempt failed. Switching to park. Try a new path.")
+            self.switch_mode(Mode.PARK)
             return
 
         # moved this above
@@ -341,10 +341,6 @@ class Navigator:
         rate = rospy.Rate(10) # 10 Hz
         while not rospy.is_shutdown():
 
-            # added this for debugging:
-            rospy.loginfo("Goal position: {}, {} ".format(self.x_g, self.y_g))
-            rospy.loginfo("Robot position: {}, {}".format(self.x, self.y))
-
             # try to get state information to update self.x, self.y, self.theta
             try:
                 (translation,rotation) = self.trans_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
@@ -359,6 +355,10 @@ class Navigator:
                 print e
                 pass
 
+            # added this for debugging:
+            rospy.loginfo("Goal position: {}, {} ".format(self.x_g, self.y_g))
+            rospy.loginfo("Robot position: {}, {}".format(self.x, self.y))
+            b = 2
             # STATE MACHINE LOGIC
             # some transitions handled by callbacks
             if self.mode == Mode.IDLE:
