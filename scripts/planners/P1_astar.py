@@ -203,11 +203,13 @@ class DetOccupancyGrid2D(object):
         self.obstacles = obstacles
 
     def is_free(self, x):
+        # x: state tuple 
         """Verifies that point is not inside any obstacles"""
         for obs in self.obstacles:
             inside = True
             for dim in range(len(x)):
-                if x[dim] < obs[0][dim] or x[dim] > obs[1][dim]:
+                # todo: account for size of robot here
+                if x[dim] + .5 < obs[0][dim] or x[dim] - .5 > obs[1][dim]: 
                     inside = False
                     break
             if inside:
