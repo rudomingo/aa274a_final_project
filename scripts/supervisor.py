@@ -3,13 +3,20 @@
 from enum import Enum
 
 import rospy
-from asl_turtlebot.msg import DetectedObject
-from asl_turtlebot.msg import DeliveryLocation
+from asl_turtlebot.msg import DetectedObject, DetectedObjectList
 from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
 from std_msgs.msg import Float32MultiArray, String
 import tf
-import queue
+from multiprocessing import Queue
+
+# Statically define the number of locations that the robot should have explored
+NUM_LOCATIONS_EXPLORED = 4
+
+# Define the objects that we want to be able to detect. Save them in a set for easy lookup
+OBJECTS_OF_INTEREST = {'banana', 'airplane', 'cup'} 
+OBJECT_CONFIDENCE_THESH = 0.7
+OBJECT_DISTANCE_THESH = 4
 
 class Mode(Enum):
     """State machine modes. Feel free to change."""
@@ -18,7 +25,7 @@ class Mode(Enum):
     STOP = 3
     CROSS = 4
     NAV = 5
-    MANUAL = 6
+    EXPLORE = 6
 
 
 class SupervisorParams:
@@ -74,16 +81,20 @@ class Supervisor:
         self.theta_g = 0
 
         # Current mode
-        self.mode = Mode.IDLE
+        self.mode = Mode.EXPLORE
         self.prev_mode = None  # For printing purposes
 
-        self.delivery_locations = {}
-        self.requests = queue.Queue()
-
+        # self.delivery_locations = {}
+        #for testing
+        self.delivery_locations = {'food1': [-0.568619549274, -0.117274023592, 0.0255803875625], 'food2': [0.896323144436, -1.47207510471,  -0.594851076603], 'food3':[-0.136055752635, -1.08409714699, -0.716856360435], 'food4': [-0.223887324333, -2.57097697258, -0.656349420547], 'food5':[-0.697493612766, -2.98323106766, 0.987384736538], 'food6': [-1.51829814911, -1.35810863972, 0.725559353828]}
+        self.requests = Queue()
         ########## PUBLISHERS ##########
 
         # Command pose for controller
         self.pose_goal_publisher = rospy.Publisher('/cmd_pose', Pose2D, queue_size=10)
+
+        # Command for point navigation
+        self.nav_goal_publisher = rospy.Publisher('/cmd_nav', Pose2D, queue_size=10)
 
         # Command vel (used for idling)
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
@@ -96,9 +107,11 @@ class Supervisor:
         # High-level navigation pose
         # rospy.Subscriber('/nav_pose', Pose2D, self.nav_pose_callback)
 
-        #Locations of delibery points
-        rospy.Subscriber('/new_locations', DeliveryLocation, self.new_location_callback)
+        # Locations of delibery points
+        #rospy.Subscriber('/new_locations', DeliveryLocation, self.new_location_callback)
 
+        # Listen to object detector and save locations of interest
+        rospy.Subscriber('/detector/objects', DetectedObjectList, self.detected_objects_callback, queue_size=10)
         
         rospy.Subscriber('/delivery_request', String, self.request_callback)
 
@@ -154,12 +167,29 @@ class Supervisor:
         
     #     self.mode = Mode.NAV
 
-    def new_location_callback(self, msg):
-        self.delivery_locations[msg.name] = msg.pose
+    def detected_objects_callback(self, msg):
+        # Iterate through all of the objects found by the detector
+        for name,obj in zip(msg.objects, ob_msgs):
+            # Check to see if the object has not already been seen and if it is an object of interest
+            if name not in self.delivery_locations.keys() and name in OBJECTS_OF_INTEREST:
+                # Ensure that the object detected is of high confidence and close to the robot
+                if obj.confidence > OBJECT_CONFIDENCE_THESH and obj.distance < OBJECT_DISTANCE_THESH:
+                    # Add the object to the robot list
+                    currentPose = Pose2D()
+                    currentPose.x = self.x
+                    currentPose.y = self.y
+                    currentPose.theta = self.theta
+                    self.delivery_locations[name] = currentPose
+
+                    # Once all objects have been found, then start the request cycle
+                    if len(self.delivery_locations.keys()) == NUM_LOCATIONS_EXPLORED:
+                        self.mode = Mode.IDLE
 
     def request_callback(self, msg):
         if self.requests.empty():
-            for location in msg.split(','):
+            # for location in msg.split(','):
+            for location in self.delivery_locations:
+                #this is a string
                 self.requests.put(location)
             self.go_to_next_request()
             self.mode = Mode.NAV
@@ -208,7 +238,7 @@ class Supervisor:
         nav_g_msg.y = self.y_g
         nav_g_msg.theta = self.theta_g
 
-        self.pose_goal_publisher.publish(nav_g_msg)
+        self.nav_goal_publisher.publish(nav_g_msg)
 
     def stay_idle(self):
         """ sends zero velocity to stay put """
@@ -261,7 +291,7 @@ class Supervisor:
 
         if not self.params.use_gazebo:
             try:
-                origin_frame = "/map" if mapping else "/odom"
+                origin_frame = "/map" if self.params.mapping else "/odom"
                 translation, rotation = self.trans_listener.lookupTransform(origin_frame, '/base_footprint', rospy.Time(0))
                 self.x, self.y = translation[0], translation[1]
                 self.theta = tf.transformations.euler_from_quaternion(rotation)[2]
@@ -287,14 +317,14 @@ class Supervisor:
                 self.go_to_pose()
 
         elif self.mode == Mode.STOP:
-	    # Check to see if the robot has stopped long enough
-	    if (self.has_stopped()):
-		self.init_crossing()
+            # Check to see if the robot has stopped long enough
+            if (self.has_stopped()):
+            self.init_crossing()
 
         elif self.mode == Mode.CROSS:
             # Crossing an intersection
-	    if (self.has_crossed()):
-		self.nav_to_pose()
+            if (self.has_crossed()):
+            self.nav_to_pose()
 
         elif self.mode == Mode.NAV:
             if self.close_to(self.x_g, self.y_g, self.theta_g):
@@ -304,6 +334,10 @@ class Supervisor:
                     self.go_to_next_request()
             else:
                 self.nav_to_pose()
+
+        elif self.mode == Mode.EXPLORE:
+            # Send zero velocity
+            self.stay_idle()
 
         else:
             raise Exception("This mode is not supported: {}".format(str(self.mode)))

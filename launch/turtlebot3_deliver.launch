@@ -1,0 +1,11 @@
+<launch>
+
+  <rosparam param="sim">false</rosparam>
+  <rosparam param="rviz">true</rosparam>
+  <rosparam param="map">true</rosparam>
+
+  <node type="rviz" name="rviz" pkg="rviz" args="-d $(find package_name)/rviz/final_project.rviz">
+  <node pkg="asl_turtlebot" type="supervisor.py" name="turtlebot_supervisor" output="screen"/>
+  <node pkg="asl_turtlebot" type="navigator.py" name="turtlebot_navigator" output="screen"/>
+  
+</launch>

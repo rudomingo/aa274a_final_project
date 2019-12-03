@@ -142,19 +142,31 @@ if __name__=="__main__":
         while(1):
             key = getKey()
             if key == 'w' :
-                target_linear_vel = checkLinearLimitVelocity(target_linear_vel + LIN_VEL_STEP_SIZE)
+                if target_linear_vel < 0.0:
+                    target_linear_vel = 0.0
+                else: 
+                    target_linear_vel = checkLinearLimitVelocity(target_linear_vel + LIN_VEL_STEP_SIZE)
                 status = status + 1
                 print vels(target_linear_vel,target_angular_vel)
             elif key == 'x' :
-                target_linear_vel = checkLinearLimitVelocity(target_linear_vel - LIN_VEL_STEP_SIZE)
+                if target_linear_vel > 0.0:
+                    target_linear_vel = 0.0
+                else: 
+                    target_linear_vel = checkLinearLimitVelocity(target_linear_vel - LIN_VEL_STEP_SIZE)
                 status = status + 1
                 print vels(target_linear_vel,target_angular_vel)
             elif key == 'a' :
-                target_angular_vel = checkAngularLimitVelocity(target_angular_vel + ANG_VEL_STEP_SIZE)
+                if target_angular_vel < 0.0:
+                    target_angular_vel = 0.0
+                else:
+                    target_angular_vel = checkAngularLimitVelocity(target_angular_vel + ANG_VEL_STEP_SIZE)
                 status = status + 1
                 print vels(target_linear_vel,target_angular_vel)
             elif key == 'd' :
-                target_angular_vel = checkAngularLimitVelocity(target_angular_vel - ANG_VEL_STEP_SIZE)
+                if target_angular_vel > 0.0:
+                    target_angular_vel = 0.0
+                else:
+                    target_angular_vel = checkAngularLimitVelocity(target_angular_vel - ANG_VEL_STEP_SIZE)
                 status = status + 1
                 print vels(target_linear_vel,target_angular_vel)
             elif key == ' ' or key == 's' :
