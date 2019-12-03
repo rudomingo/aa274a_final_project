@@ -356,10 +356,6 @@ class Navigator:
                 print e
                 pass
 
-            # added this for debugging:
-            rospy.loginfo("Goal position: {}, {} ".format(self.x_g, self.y_g))
-            rospy.loginfo("Robot position: {}, {}".format(self.x, self.y))
-
             # STATE MACHINE LOGIC
             # some transitions handled by callbacks
             if self.mode == Mode.IDLE:
