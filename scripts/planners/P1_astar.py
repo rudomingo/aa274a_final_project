@@ -208,8 +208,7 @@ class DetOccupancyGrid2D(object):
         for obs in self.obstacles:
             inside = True
             for dim in range(len(x)):
-                # todo: account for size of robot here
-                if x[dim] + .15 < obs[0][dim] or x[dim] - .15 > obs[1][dim]: 
+                if x[dim] < obs[0][dim] or x[dim] > obs[1][dim]: 
                     inside = False
                     break
             if inside:
