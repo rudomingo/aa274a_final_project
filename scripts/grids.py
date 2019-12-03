@@ -66,10 +66,10 @@ class StochOccupancyGrid2D(object):
                 if grid_y>0 and grid_x>0 and grid_x<self.width and grid_y<self.height:
                     
                     # todo: artificially inflate probabilties above some threshold to be higher
-                    probability = max(0.0,float(self.probs[grid_y * self.width + grid_x])/100.0)
+                    probability = max(0.0, float(self.probs[grid_y * self.width + grid_x])/100.0)
 
-                    if probability > .4:
-                        probability *= 1.5
+                    if probability > .1:
+                        probability *= .1
 
                     # self.probs is stored as m*n array instead of mxn matrix
                     p_total *= max(0.0, (1.0-probability))
