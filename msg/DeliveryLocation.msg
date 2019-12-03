@@ -1,3 +1,2 @@
-from geometry_msgs.msg import Pose2D
 string name
-Pose2D pose
+geometry_msgs/Pose2D pose
