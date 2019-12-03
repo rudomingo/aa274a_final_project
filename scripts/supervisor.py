@@ -8,7 +8,7 @@ from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
 from std_msgs.msg import Float32MultiArray, String
 import tf
-import queue
+from multiprocessing import Queue
 
 # Statically define the number of locations that the robot should have explored
 NUM_LOCATIONS_EXPLORED = 4
@@ -84,9 +84,10 @@ class Supervisor:
         self.mode = Mode.EXPLORE
         self.prev_mode = None  # For printing purposes
 
-        self.delivery_locations = {}
-        self.requests = queue.Queue()
-
+        # self.delivery_locations = {}
+        #for testing
+        self.delivery_locations = {'food1': [-0.568619549274, -0.117274023592, 0.0255803875625], 'food2': [0.896323144436, -1.47207510471,  -0.594851076603], 'food3':[-0.136055752635, -1.08409714699, -0.716856360435], 'food4': [-0.223887324333, -2.57097697258, -0.656349420547], 'food5':[-0.697493612766, -2.98323106766, 0.987384736538], 'food6': [-1.51829814911, -1.35810863972, 0.725559353828]}
+        self.requests = Queue()
         ########## PUBLISHERS ##########
 
         # Command pose for controller
@@ -184,10 +185,11 @@ class Supervisor:
                     if len(self.delivery_locations.keys()) == NUM_LOCATIONS_EXPLORED:
                         self.mode = Mode.IDLE
 
-
     def request_callback(self, msg):
         if self.requests.empty():
-            for location in msg.split(','):
+            # for location in msg.split(','):
+            for location in self.delivery_locations:
+                #this is a string
                 self.requests.put(location)
             self.go_to_next_request()
             self.mode = Mode.NAV

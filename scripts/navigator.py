@@ -282,10 +282,21 @@ class Navigator:
         
 
         # Check whether path is too short
-        if len(planned_path) < 4:
-            rospy.loginfo("Path too short to track")
+        try:
+            if len(planned_path) < 4:
+                rospy.loginfo("Path too short to track")
+                self.switch_mode(Mode.PARK)
+                return
+        except:
+            rospy.loginfo("len(path_planned) attempt failed. Switching to park. Try a new path.")
             self.switch_mode(Mode.PARK)
             return
+
+        # moved this above
+        # if len(planned_path) < 4:
+        #     rospy.loginfo("Path too short to track")
+        #     self.switch_mode(Mode.PARK)
+        #     return
 
         # Smooth and generate a trajectory
         traj_new, t_new = compute_smoothed_traj(planned_path, self.v_des, self.spline_alpha, self.traj_dt)
@@ -329,6 +340,7 @@ class Navigator:
     def run(self):
         rate = rospy.Rate(10) # 10 Hz
         while not rospy.is_shutdown():
+
             # try to get state information to update self.x, self.y, self.theta
             try:
                 (translation,rotation) = self.trans_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
@@ -343,6 +355,10 @@ class Navigator:
                 print e
                 pass
 
+            # added this for debugging:
+            rospy.loginfo("Goal position: {}, {} ".format(self.x_g, self.y_g))
+            rospy.loginfo("Robot position: {}, {}".format(self.x, self.y))
+            b = 2
             # STATE MACHINE LOGIC
             # some transitions handled by callbacks
             if self.mode == Mode.IDLE:
