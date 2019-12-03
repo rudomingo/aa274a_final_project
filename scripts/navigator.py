@@ -282,10 +282,21 @@ class Navigator:
         
 
         # Check whether path is too short
-        if len(planned_path) < 4:
-            rospy.loginfo("Path too short to track")
-            self.switch_mode(Mode.PARK)
-            return
+        try:
+        	if len(planned_path) < 4:
+	            rospy.loginfo("Path too short to track")
+	            self.switch_mode(Mode.PARK)
+	            return
+    	except:
+    		rospy.loginfo("len(path_planned) attempt failed. Switching to park. Try a new path.")
+    		self.switch_mode(Mode.PARK)
+        	return
+
+    	# moved this above
+        # if len(planned_path) < 4:
+        #     rospy.loginfo("Path too short to track")
+        #     self.switch_mode(Mode.PARK)
+        #     return
 
         # Smooth and generate a trajectory
         traj_new, t_new = compute_smoothed_traj(planned_path, self.v_des, self.spline_alpha, self.traj_dt)
