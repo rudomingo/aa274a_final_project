@@ -149,6 +149,7 @@ class Navigator:
                                                   self.map_origin[1],
                                                   8,
                                                   self.map_probs)
+
             if self.x_g is not None:
                 # if we have a goal to plan to, replan
                 rospy.loginfo("replanning because of new map")
@@ -358,7 +359,7 @@ class Navigator:
             # added this for debugging:
             rospy.loginfo("Goal position: {}, {} ".format(self.x_g, self.y_g))
             rospy.loginfo("Robot position: {}, {}".format(self.x, self.y))
-            
+
             # STATE MACHINE LOGIC
             # some transitions handled by callbacks
             if self.mode == Mode.IDLE:
