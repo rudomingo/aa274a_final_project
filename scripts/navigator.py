@@ -340,6 +340,11 @@ class Navigator:
     def run(self):
         rate = rospy.Rate(10) # 10 Hz
         while not rospy.is_shutdown():
+
+        	# added this for debugging:
+        	rospy.loginfo("Goal position: {}, {} ".format(self.x_g, self.y_g))
+        	rospy.loginfo("Robot position: {}, {}".format(self.x, self.y))
+
             # try to get state information to update self.x, self.y, self.theta
             try:
                 (translation,rotation) = self.trans_listener.lookupTransform('/map', '/base_footprint', rospy.Time(0))
