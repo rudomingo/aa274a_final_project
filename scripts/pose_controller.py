@@ -93,7 +93,7 @@ class PoseControllerNode:
     def cmd_pose_callback(self, msg):
         ########## Code starts here ##########
         # TODO: Update the goal pose in the pose controller.
-	self.controller.load_goal(msg.x, msg.y, msg.theta)
+        self.controller.load_goal(msg.x, msg.y, msg.theta)
 
         ########## Code ends here ##########
 
@@ -124,7 +124,7 @@ class PoseControllerNode:
         ######### YOUR CODE HERE ############
         # TODO: Use your pose controller to compute controls (V, om) given the
         #       robot's current state.
-	V, om = self.controller.compute_control(self.x, self.y, self.theta, self.cmd_pose_time)
+        V, om = self.controller.compute_control(self.x, self.y, self.theta, self.cmd_pose_time)
 
         ######### END OF YOUR CODE ##########
 
