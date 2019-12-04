@@ -81,7 +81,8 @@ class Supervisor:
         self.theta_g = 0
 
         # Current mode
-        self.mode = Mode.EXPLORE
+        # self.mode = Mode.EXPLORE
+        self.mode = Mode.IDLE
         self.prev_mode = None  # For printing purposes
 
         # self.delivery_locations = {}
@@ -127,7 +128,7 @@ class Supervisor:
         else:
             self.x_g, self.y_g, self.theta_g = 1.5, -4., 0.
             self.mode = Mode.NAV
-        
+        print("finished supervisor init")
 
     ########## SUBSCRIBER CALLBACKS ##########
 
@@ -192,6 +193,8 @@ class Supervisor:
                 #this is a string
                 self.requests.put(location)
             self.go_to_next_request()
+            print("switching to Nav")
+            print(self.requests)
             self.mode = Mode.NAV
 
 
@@ -215,9 +218,13 @@ class Supervisor:
     # useful. There is no single "correct implementation".
     def go_to_next_request(self):
         goal_pose = self.delivery_locations[self.requests.get()]
-        self.x_g = goal_pose.x
-        self.y_g = goal_pose.y
-        self.theta_g = goal_pose.theta
+        # self.x_g = goal_pose.x
+        # self.y_g = goal_pose.y
+        # self.theta_g = goal_pose.theta
+        self.x_g = goal_pose[0]
+        self.y_g = goal_pose[1]
+        self.theta_g = goal_pose[2]
+
 
 
     def go_to_pose(self):
@@ -306,10 +313,12 @@ class Supervisor:
         ########## Code starts here ##########
     
         if self.mode == Mode.IDLE:
+            print("in idle")
             # Send zero velocity
             self.stay_idle()
 
         elif self.mode == Mode.POSE:
+
             # Moving towards a desired pose
             if self.close_to(self.x_g, self.y_g, self.theta_g):
                 self.mode = Mode.IDLE
@@ -327,7 +336,9 @@ class Supervisor:
                 self.nav_to_pose()
 
         elif self.mode == Mode.NAV:
+            print("in nav")
             if self.close_to(self.x_g, self.y_g, self.theta_g):
+                print("close to destination")
                 if self.requests.empty():
                     self.mode = Mode.IDLE
                 else:
