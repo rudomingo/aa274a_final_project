@@ -340,7 +340,7 @@ class Supervisor:
         elif self.mode == Mode.NAV:
             if self.close_to(self.x_g, self.y_g, self.theta_g):
                 print("close to destination")
-                self.request.pop(0)
+                self.requests.pop(0)
                 if len(self.requests) == 0:
                     self.mode = Mode.IDLE
                 else:
