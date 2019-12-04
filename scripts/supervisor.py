@@ -11,10 +11,10 @@ import tf
 import Queue
 
 # Statically define the number of locations that the robot should have explored
-NUM_LOCATIONS_EXPLORED = 1
+NUM_LOCATIONS_EXPLORED = 3
 
 # Define the objects that we want to be able to detect. Save them in a set for easy lookup
-OBJECTS_OF_INTEREST = {'banana', 'airplane', 'cup'} 
+OBJECTS_OF_INTEREST = {'wine_glass', 'airplane', 'cup'} 
 OBJECT_CONFIDENCE_THESH = 0.5
 OBJECT_DISTANCE_THESH = 15
 
@@ -166,7 +166,6 @@ class Supervisor:
     #     self.mode = Mode.NAV
 
     def detected_objects_callback(self, msg):
-        print("Detected an object!!!")
         # Iterate through all of the objects found by the detector
         for name,obj in zip(msg.objects, msg.ob_msgs):
             # Check to see if the object has not already been seen and if it is an object of interest
@@ -188,16 +187,21 @@ class Supervisor:
 
     def request_callback(self, msg):
         rospy.loginfo("Receiving request...")
+	print(msg.data)
         if len(self.requests) == 0:
-            # for location in msg.split(','):
-            rospy.loginfo("Processing request...")
-            for location in self.delivery_locations:
-                #this is a string
-                self.requests.append(location)
-            self.go_to_next_request()
-            print("switching to Nav")
-            print(self.requests)
-            self.mode = Mode.NAV
+            for location in msg.data.split(','):
+		if location not in self.delivery_locations.keys(): 
+		    rospy.loginfo("Location %s invalid. Skipping.", location)
+		    continue
+		else:
+		    rospy.loginfo("Processing request...")
+		    self.requests.append(location)
+
+	    if len(self.requests) > 0:
+                self.go_to_next_request()
+                print("switching to Nav")
+                print(self.requests)
+                self.mode = Mode.NAV
 
 
     def stop_sign_detected_callback(self, msg):
@@ -315,9 +319,10 @@ class Supervisor:
         ########## Code starts here ##########
     
         if self.mode == Mode.IDLE:
+	    pass
             # Send zero velocity
             #self.stay_idle()
-            rospy.loginfo("Idling...")
+            #rospy.loginfo("Idling...")
 
         elif self.mode == Mode.POSE:
 
@@ -349,7 +354,8 @@ class Supervisor:
                 self.nav_to_pose()
 
         elif self.mode == Mode.EXPLORE:
-            rospy.loginfo("Exploring...")
+	    pass
+            #rospy.loginfo("Exploring...")
 
         else:
             raise Exception("This mode is not supported: {}".format(str(self.mode)))
