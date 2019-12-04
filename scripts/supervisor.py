@@ -182,6 +182,7 @@ class Supervisor:
                     currentPose.theta = self.theta
                     self.delivery_locations[name] = currentPose
 
+
                     # Once all objects have been found, then start the request cycle
                     if len(self.delivery_locations.keys()) == NUM_LOCATIONS_EXPLORED:
                         self.mode = Mode.IDLE
@@ -288,6 +289,80 @@ class Supervisor:
 
     ########## Code ends here ##########
 
+    ########## RVIZ VISUALIZATION ##########
+    vendor_marker_ids = dict()
+    def publish_vendor_locs(self):
+
+        for name,loc in self.delivery_locations.items():
+            # add marker
+            marker = Marker()
+
+            marker.header.frame_id = "base_footprint"
+            marker.header.stamp = rospy.Time()
+
+            # so we don't create millions of markers over time
+            if name in vendor_marker_ids.keys():
+                marker.id = vendor_marker_ids[name]
+            else:
+                next_avail_id = len(vendor_marker_ids) + 1 # robot is 0, so that from 1
+                marker.id = next_avail_id
+                vendor_marker_ids[name] = next_avail_id
+
+            marker.type = 1 # cube
+
+            marker.pose.position.x = loc.x
+            marker.pose.position.y = loc.y
+            marker.pose.position.z = 0
+
+            marker.pose.orientation.x = 0.0
+            marker.pose.orientation.y = 0.0
+            marker.pose.orientation.z = 0.0
+            marker.pose.orientation.w = 1.0
+
+            marker.scale.x = 1
+            marker.scale.y = 1
+            marker.scale.z = 1
+
+            marker.color.a = 1.0 # Don't forget to set the alpha!
+            marker.color.r = 0.5
+            marker.color.g = 0.0
+            marker.color.b = 1.0
+            
+            vis_pub.publish(marker)
+
+
+    def publish_robot_loc(self):
+        marker = Marker()
+
+        marker.header.frame_id = "base_footprint"
+        marker.header.stamp = rospy.Time()
+
+        marker.id = 0 # robot marker id is 0
+
+        marker.type = 2 # sphere
+
+        marker.pose.position.x = self.x
+        marker.pose.position.y = self.y
+        marker.pose.position.z = 0
+
+        marker.pose.orientation.x = 0.0
+        marker.pose.orientation.y = 0.0
+        marker.pose.orientation.z = 0.0
+        marker.pose.orientation.w = 1.0
+
+        marker.scale.x = 1
+        marker.scale.y = 1
+        marker.scale.z = 1
+
+        marker.color.a = 1.0 # Don't forget to set the alpha!
+        marker.color.r = 0.5
+        marker.color.g = 1.0
+        marker.color.b = 0.5
+        
+        vis_pub.publish(marker)
+
+    ########## END RVIZ VISUALIZATION ##########
+
 
     ########## STATE MACHINE LOOP ##########
 
@@ -311,6 +386,10 @@ class Supervisor:
             self.prev_mode = self.mode
 
         ########## Code starts here ##########
+
+        # publish vendor and robot locations
+        publish_vendor_locs()
+        publish_robot_loc()
     
         if self.mode == Mode.IDLE:
             print("in idle")

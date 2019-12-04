@@ -370,7 +370,7 @@ class Navigator:
                 elif not self.close_to_plan_start():
                     rospy.loginfo("replanning because far from start")
                     self.replan()
-                elif (rospy.get_rostime() - self.current_plan_start_time).to_sec() > self.current_plan_duration + 5:
+                elif (rospy.get_rostime() - self.current_plan_start_time).to_sec() > self.current_plan_duration:
                     rospy.loginfo("replanning because out of time")
                     self.replan() # we aren't near the goal but we thought we should have been, so replan
             elif self.mode == Mode.PARK:

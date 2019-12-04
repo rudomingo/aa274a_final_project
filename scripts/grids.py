@@ -69,7 +69,7 @@ class StochOccupancyGrid2D(object):
                     probability = max(0.0, float(self.probs[grid_y * self.width + grid_x])/100.0)
 
                     if probability > .1:
-                        probability *= 2.0
+                        probability *= 2.0 # might want to lower this 
 
                     # self.probs is stored as m*n array instead of mxn matrix
                     p_total *= max(0.0, (1.0-probability))
