@@ -4,7 +4,7 @@ from enum import Enum
 
 import rospy
 from asl_turtlebot.msg import DetectedObject, DetectedObjectList
-from gazebo_msgs.msg import ModelStates
+#from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
 from std_msgs.msg import Float32MultiArray, String
 import tf
@@ -115,8 +115,8 @@ class Supervisor:
 
 
         # If using gazebo, we have access to perfect state
-        if self.params.use_gazebo:
-            rospy.Subscriber('/gazebo/model_states', ModelStates, self.gazebo_callback)
+        #if self.params.use_gazebo:
+            #rospy.Subscriber('/gazebo/model_states', ModelStates, self.gazebo_callback)
         self.trans_listener = tf.TransformListener()
 
         # If using rviz, we can subscribe to nav goal click
