@@ -302,7 +302,7 @@ class Supervisor:
             # add marker
             marker = Marker()
 
-            marker.header.frame_id = "base_footprint"
+            marker.header.frame_id = "/my_frame"
             marker.header.stamp = rospy.Time()
 
             # so we don't create millions of markers over time
@@ -314,7 +314,6 @@ class Supervisor:
                 self.vendor_marker_ids[name] = next_avail_id
 
             marker.type = 1 # cube
-
             #marker.pose.position.x = loc.x
             #marker.pose.position.y = loc.y
             marker.pose.position.x = loc[0]
@@ -329,11 +328,16 @@ class Supervisor:
             marker.scale.x = 0.7
             marker.scale.y = 0.7
             marker.scale.z = 0.7
-
-            marker.color.a = 1.0 # Don't forget to set the alpha!
-            marker.color.r = 0.5
-            marker.color.g = 0.0
-            marker.color.b = 1.0
+            if name == 'home':
+		marker.color.a = 0.0
+		marker.color.r - 1.0
+		marker.color.g = 0.0
+		marker.color.b = 0.0
+            else:
+            	marker.color.a = 1.0 # Don't forget to set the alpha!
+            	marker.color.r = 0.5
+            	marker.color.g = 0.0
+            	marker.color.b = 1.0
             
             self.vis_pub.publish(marker)
 
