@@ -9,6 +9,7 @@ from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
 from std_msgs.msg import Float32MultiArray, String
 import tf
 import Queue
+from visualization_msgs.msg import Marker
 
 # Statically define the number of locations that the robot should have explored
 NUM_LOCATIONS_EXPLORED = 1
