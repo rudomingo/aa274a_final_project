@@ -364,7 +364,7 @@ class Supervisor:
         marker.color.r = 0.5
         marker.color.g = 1.0
         marker.color.b = 0.5
-        rospy.loginfo("publishing marker to robot location: ", (self.x, self.y))
+        rospy.loginfo("publishing marker to robot location: ({}, {})".format(self.x, self.y))
         self.vis_pub.publish(marker)
 
     ########## END RVIZ VISUALIZATION ##########
