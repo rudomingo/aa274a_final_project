@@ -306,7 +306,7 @@ class Supervisor:
             if name in vendor_marker_ids.keys():
                 marker.id = vendor_marker_ids[name]
             else:
-                next_avail_id = len(vendor_marker_ids) + 1 # robot is 0, so that from 1
+                next_avail_id = len(vendor_marker_ids) + 1 # robot is 0, so increment from 1
                 marker.id = next_avail_id
                 vendor_marker_ids[name] = next_avail_id
 
@@ -390,8 +390,8 @@ class Supervisor:
         ########## Code starts here ##########
 
         # publish vendor and robot locations
-        publish_vendor_locs()
-        publish_robot_loc()
+        self.publish_vendor_locs()
+        self.publish_robot_loc()
     
         if self.mode == Mode.IDLE:
             # Send zero velocity
