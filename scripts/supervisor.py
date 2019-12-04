@@ -345,7 +345,7 @@ class Supervisor:
 
         marker.id = 0 # robot marker id is 0
 
-        marker.type = 11 # sphere
+        marker.type = 0 # sphere
 
         marker.pose.position.x = self.x
         marker.pose.position.y = self.y
@@ -356,9 +356,9 @@ class Supervisor:
         marker.pose.orientation.z = 0.0
         marker.pose.orientation.w = 1.0
 
-        marker.scale.x = 1
-        marker.scale.y = 1
-        marker.scale.z = 1
+        marker.scale.x = 0.4
+        marker.scale.y = 0.1
+        marker.scale.z = 0.1
 
         marker.color.a = 1.0 # Don't forget to set the alpha!
         marker.color.r = 0.5
