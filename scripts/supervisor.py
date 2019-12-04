@@ -102,7 +102,7 @@ class Supervisor:
         # Command vel (used for idling)
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
-        # Ror rviz markers
+        # For rviz markers
         self.vis_pub = rospy.Publisher('/marker_topic', Marker, queue_size=10)
         ########## SUBSCRIBERS ##########
 
@@ -307,12 +307,12 @@ class Supervisor:
             marker.header.stamp = rospy.Time()
 
             # so we don't create millions of markers over time
-            if name in vendor_marker_ids.keys():
-                marker.id = vendor_marker_ids[name]
+            if name in self.vendor_marker_ids.keys():
+                marker.id = self.vendor_marker_ids[name]
             else:
-                next_avail_id = len(vendor_marker_ids) + 1 # robot is 0, so increment from 1
+                next_avail_id = len(self.vendor_marker_ids) + 1 # robot is 0, so increment from 1
                 marker.id = next_avail_id
-                vendor_marker_ids[name] = next_avail_id
+                self.vendor_marker_ids[name] = next_avail_id
 
             marker.type = 1 # cube
 
@@ -364,7 +364,7 @@ class Supervisor:
         marker.color.r = 0.5
         marker.color.g = 1.0
         marker.color.b = 0.5
-        
+        rospy.loginfo("publishing marker to robot location: ", (self.x, self.y))
         self.vis_pub.publish(marker)
 
     ########## END RVIZ VISUALIZATION ##########
