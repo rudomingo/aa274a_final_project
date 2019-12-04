@@ -86,9 +86,9 @@ class Supervisor:
         #self.mode = Mode.IDLE
         self.prev_mode = None  # For printing purposes
 
-        self.delivery_locations = {}
+        #self.delivery_locations = {}
         #for testing
-        #self.delivery_locations = {'food1': [-0.568619549274, -0.117274023592, 0.0255803875625], 'food2': [0.896323144436, -1.47207510471,  -0.594851076603], 'food3':[-0.136055752635, -1.08409714699, -0.716856360435], 'food4': [-0.223887324333, -2.57097697258, -0.656349420547], 'food5':[-0.697493612766, -2.98323106766, 0.987384736538], 'food6': [-1.51829814911, -1.35810863972, 0.725559353828]}
+        self.delivery_locations = {'food1': [1, 5, 2], 'food2': [7,8,5], 'food3':[-0.136055752635, -1.08409714699, -0.716856360435], 'food4': [-0.223887324333, -2.57097697258, -0.656349420547], 'food5':[-0.697493612766, -2.98323106766, 0.987384736538], 'food6': [-1.51829814911, -1.35810863972, 0.725559353828]}
         self.requests = []
         self.vendor_marker_ids = {}
         ########## PUBLISHERS ##########
@@ -166,7 +166,6 @@ class Supervisor:
         self.mode = Mode.NAV
 
     # def nav_pose_callback(self, msg):
-        
     #     self.mode = Mode.NAV
 
     def detected_objects_callback(self, msg):
@@ -225,12 +224,12 @@ class Supervisor:
     # useful. There is no single "correct implementation".
     def go_to_next_request(self):
         goal_pose = self.delivery_locations[self.requests[0]]
-        self.x_g = goal_pose.x
-        self.y_g = goal_pose.y
-        self.theta_g = goal_pose.theta
-        #self.x_g = goal_pose[0]
-        #self.y_g = goal_pose[1]
-        #self.theta_g = goal_pose[2]
+        #self.x_g = goal_pose.x
+        #self.y_g = goal_pose.y
+        #self.theta_g = goal_pose.theta
+        self.x_g = goal_pose[0]
+        self.y_g = goal_pose[1]
+        self.theta_g = goal_pose[2]
 
 
 
@@ -316,18 +315,20 @@ class Supervisor:
 
             marker.type = 1 # cube
 
-            marker.pose.position.x = loc.x
-            marker.pose.position.y = loc.y
-            marker.pose.position.z = 0
+            #marker.pose.position.x = loc.x
+            #marker.pose.position.y = loc.y
+            marker.pose.position.x = loc[0]
+	        marker.pose.position.y = loc[1]
+	        marker.pose.position.z = 0
 
             marker.pose.orientation.x = 0.0
             marker.pose.orientation.y = 0.0
             marker.pose.orientation.z = 0.0
             marker.pose.orientation.w = 1.0
 
-            marker.scale.x = 1
-            marker.scale.y = 1
-            marker.scale.z = 1
+            marker.scale.x = 0.7
+            marker.scale.y = 0.7
+            marker.scale.z = 0.7
 
             marker.color.a = 1.0 # Don't forget to set the alpha!
             marker.color.r = 0.5
@@ -345,7 +346,7 @@ class Supervisor:
 
         marker.id = 0 # robot marker id is 0
 
-        marker.type = 2 # sphere
+        marker.type = 0 # sphere
 
         marker.pose.position.x = self.x
         marker.pose.position.y = self.y
@@ -356,9 +357,9 @@ class Supervisor:
         marker.pose.orientation.z = 0.0
         marker.pose.orientation.w = 1.0
 
-        marker.scale.x = .6
-        marker.scale.y = .6
-        marker.scale.z = .6
+        marker.scale.x = 0.4
+        marker.scale.y = 0.1
+        marker.scale.z = 0.1
 
         marker.color.a = 1.0 # Don't forget to set the alpha!
         marker.color.r = 0.5
