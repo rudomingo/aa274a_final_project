@@ -346,7 +346,7 @@ class Supervisor:
 
         marker.id = 0 # robot marker id is 0
 
-        marker.type = 0 # sphere
+        marker.type = 0 # arrow
 
         marker.pose.position.x = self.x
         marker.pose.position.y = self.y
@@ -365,7 +365,6 @@ class Supervisor:
         marker.color.r = 0.5
         marker.color.g = 1.0
         marker.color.b = 0.5
-        rospy.loginfo("publishing marker to robot location: ({}, {})".format(self.x, self.y))
         self.vis_pub.publish(marker)
 
     ########## END RVIZ VISUALIZATION ##########
