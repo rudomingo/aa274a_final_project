@@ -90,6 +90,7 @@ class Supervisor:
         #for testing
         #self.delivery_locations = {'food1': [-0.568619549274, -0.117274023592, 0.0255803875625], 'food2': [0.896323144436, -1.47207510471,  -0.594851076603], 'food3':[-0.136055752635, -1.08409714699, -0.716856360435], 'food4': [-0.223887324333, -2.57097697258, -0.656349420547], 'food5':[-0.697493612766, -2.98323106766, 0.987384736538], 'food6': [-1.51829814911, -1.35810863972, 0.725559353828]}
         self.requests = []
+        self.vendor_marker_ids = {}
         ########## PUBLISHERS ##########
 
         # Command pose for controller
@@ -101,6 +102,8 @@ class Supervisor:
         # Command vel (used for idling)
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
+        # Ror rviz markers
+        self.vis_pub = rospy.Publisher('/marker_topic', Marker, queue_size=10)
         ########## SUBSCRIBERS ##########
 
         # Stop sign detector
@@ -293,7 +296,7 @@ class Supervisor:
     ########## Code ends here ##########
 
     ########## RVIZ VISUALIZATION ##########
-    vendor_marker_ids = dict()
+    
     def publish_vendor_locs(self):
 
         for name,loc in self.delivery_locations.items():
@@ -331,7 +334,7 @@ class Supervisor:
             marker.color.g = 0.0
             marker.color.b = 1.0
             
-            vis_pub.publish(marker)
+            self.vis_pub.publish(marker)
 
 
     def publish_robot_loc(self):
@@ -362,7 +365,7 @@ class Supervisor:
         marker.color.g = 1.0
         marker.color.b = 0.5
         
-        vis_pub.publish(marker)
+        self.vis_pub.publish(marker)
 
     ########## END RVIZ VISUALIZATION ##########
 
