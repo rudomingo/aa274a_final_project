@@ -356,9 +356,9 @@ class Supervisor:
         marker.pose.orientation.z = 0.0
         marker.pose.orientation.w = 1.0
 
-        marker.scale.x = 1
-        marker.scale.y = 1
-        marker.scale.z = 1
+        marker.scale.x = .6
+        marker.scale.y = .6
+        marker.scale.z = .6
 
         marker.color.a = 1.0 # Don't forget to set the alpha!
         marker.color.r = 0.5
