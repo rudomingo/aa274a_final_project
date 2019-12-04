@@ -317,8 +317,8 @@ class Supervisor:
             #marker.pose.position.x = loc.x
             #marker.pose.position.y = loc.y
             marker.pose.position.x = loc[0]
-	    marker.pose.position.y = loc[1]
-	    marker.pose.position.z = 0
+	        marker.pose.position.y = loc[1]
+	        marker.pose.position.z = 0
 
             marker.pose.orientation.x = 0.0
             marker.pose.orientation.y = 0.0
