@@ -6,6 +6,5 @@
 
   <node pkg="asl_turtlebot" type="supervisor.py" name="turtlebot_supervisor" output="screen"/>
   <node pkg="asl_turtlebot" type="navigator.py" name="turtlebot_navigator" output="screen"/>
-  <!--node type="rviz" name="rviz" pkg="rviz" args="-d $(find asl_turtlebot)/rviz/final_project.rviz"/-->
   
 </launch>

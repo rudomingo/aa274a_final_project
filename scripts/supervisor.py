@@ -4,19 +4,19 @@ from enum import Enum
 
 import rospy
 from asl_turtlebot.msg import DetectedObject, DetectedObjectList
-from gazebo_msgs.msg import ModelStates
+#from gazebo_msgs.msg import ModelStates
 from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
 from std_msgs.msg import Float32MultiArray, String
 import tf
-from multiprocessing import Queue
+import Queue
 
 # Statically define the number of locations that the robot should have explored
-NUM_LOCATIONS_EXPLORED = 4
+NUM_LOCATIONS_EXPLORED = 1
 
 # Define the objects that we want to be able to detect. Save them in a set for easy lookup
 OBJECTS_OF_INTEREST = {'banana', 'airplane', 'cup'} 
-OBJECT_CONFIDENCE_THESH = 0.7
-OBJECT_DISTANCE_THESH = 4
+OBJECT_CONFIDENCE_THESH = 0.5
+OBJECT_DISTANCE_THESH = 15
 
 class Mode(Enum):
     """State machine modes. Feel free to change."""
@@ -81,14 +81,14 @@ class Supervisor:
         self.theta_g = 0
 
         # Current mode
-        # self.mode = Mode.EXPLORE
-        self.mode = Mode.IDLE
+        self.mode = Mode.EXPLORE
+        #self.mode = Mode.IDLE
         self.prev_mode = None  # For printing purposes
 
-        # self.delivery_locations = {}
+        self.delivery_locations = {}
         #for testing
-        self.delivery_locations = {'food1': [-0.568619549274, -0.117274023592, 0.0255803875625], 'food2': [0.896323144436, -1.47207510471,  -0.594851076603], 'food3':[-0.136055752635, -1.08409714699, -0.716856360435], 'food4': [-0.223887324333, -2.57097697258, -0.656349420547], 'food5':[-0.697493612766, -2.98323106766, 0.987384736538], 'food6': [-1.51829814911, -1.35810863972, 0.725559353828]}
-        self.requests = Queue()
+        #self.delivery_locations = {'food1': [-0.568619549274, -0.117274023592, 0.0255803875625], 'food2': [0.896323144436, -1.47207510471,  -0.594851076603], 'food3':[-0.136055752635, -1.08409714699, -0.716856360435], 'food4': [-0.223887324333, -2.57097697258, -0.656349420547], 'food5':[-0.697493612766, -2.98323106766, 0.987384736538], 'food6': [-1.51829814911, -1.35810863972, 0.725559353828]}
+        self.requests = []
         ########## PUBLISHERS ##########
 
         # Command pose for controller
@@ -108,9 +108,6 @@ class Supervisor:
         # High-level navigation pose
         # rospy.Subscriber('/nav_pose', Pose2D, self.nav_pose_callback)
 
-        # Locations of delibery points
-        #rospy.Subscriber('/new_locations', DeliveryLocation, self.new_location_callback)
-
         # Listen to object detector and save locations of interest
         rospy.Subscriber('/detector/objects', DetectedObjectList, self.detected_objects_callback, queue_size=10)
         
@@ -118,8 +115,8 @@ class Supervisor:
 
 
         # If using gazebo, we have access to perfect state
-        if self.params.use_gazebo:
-            rospy.Subscriber('/gazebo/model_states', ModelStates, self.gazebo_callback)
+        #if self.params.use_gazebo:
+            #rospy.Subscriber('/gazebo/model_states', ModelStates, self.gazebo_callback)
         self.trans_listener = tf.TransformListener()
 
         # If using rviz, we can subscribe to nav goal click
@@ -169,8 +166,9 @@ class Supervisor:
     #     self.mode = Mode.NAV
 
     def detected_objects_callback(self, msg):
+        print("Detected an object!!!")
         # Iterate through all of the objects found by the detector
-        for name,obj in zip(msg.objects, ob_msgs):
+        for name,obj in zip(msg.objects, msg.ob_msgs):
             # Check to see if the object has not already been seen and if it is an object of interest
             if name not in self.delivery_locations.keys() and name in OBJECTS_OF_INTEREST:
                 # Ensure that the object detected is of high confidence and close to the robot
@@ -181,18 +179,22 @@ class Supervisor:
                     currentPose.y = self.y
                     currentPose.theta = self.theta
                     self.delivery_locations[name] = currentPose
+                    print(self.delivery_locations)
 
 
                     # Once all objects have been found, then start the request cycle
                     if len(self.delivery_locations.keys()) == NUM_LOCATIONS_EXPLORED:
+                        print("FOUND ALL DELIVERY LOCATIONS")
                         self.mode = Mode.IDLE
 
     def request_callback(self, msg):
-        if self.requests.empty():
+        rospy.loginfo("Receiving request...")
+        if len(self.requests) == 0:
             # for location in msg.split(','):
+            rospy.loginfo("Processing request...")
             for location in self.delivery_locations:
                 #this is a string
-                self.requests.put(location)
+                self.requests.append(location)
             self.go_to_next_request()
             print("switching to Nav")
             print(self.requests)
@@ -218,13 +220,13 @@ class Supervisor:
     # Feel free to change the code here. You may or may not find these functions
     # useful. There is no single "correct implementation".
     def go_to_next_request(self):
-        goal_pose = self.delivery_locations[self.requests.get()]
-        # self.x_g = goal_pose.x
-        # self.y_g = goal_pose.y
-        # self.theta_g = goal_pose.theta
-        self.x_g = goal_pose[0]
-        self.y_g = goal_pose[1]
-        self.theta_g = goal_pose[2]
+        goal_pose = self.delivery_locations[self.requests[0]]
+        self.x_g = goal_pose.x
+        self.y_g = goal_pose.y
+        self.theta_g = goal_pose.theta
+        #self.x_g = goal_pose[0]
+        #self.y_g = goal_pose[1]
+        #self.theta_g = goal_pose[2]
 
 
 
@@ -239,7 +241,7 @@ class Supervisor:
         self.pose_goal_publisher.publish(pose_g_msg)
 
     def nav_to_pose(self):
-        """ sends the current desired pose to the naviagtor """
+        """ sends the current desired pose to the navigator """
 
         nav_g_msg = Pose2D()
         nav_g_msg.x = self.x_g
@@ -392,9 +394,9 @@ class Supervisor:
         publish_robot_loc()
     
         if self.mode == Mode.IDLE:
-            print("in idle")
             # Send zero velocity
-            self.stay_idle()
+            #self.stay_idle()
+            rospy.loginfo("Idling...")
 
         elif self.mode == Mode.POSE:
 
@@ -415,10 +417,10 @@ class Supervisor:
                 self.nav_to_pose()
 
         elif self.mode == Mode.NAV:
-            print("in nav")
             if self.close_to(self.x_g, self.y_g, self.theta_g):
                 print("close to destination")
-                if self.requests.empty():
+                self.requests.pop(0)
+                if len(self.requests) == 0:
                     self.mode = Mode.IDLE
                 else:
                     self.go_to_next_request()
@@ -426,8 +428,7 @@ class Supervisor:
                 self.nav_to_pose()
 
         elif self.mode == Mode.EXPLORE:
-            # Send zero velocity
-            self.stay_idle()
+            rospy.loginfo("Exploring...")
 
         else:
             raise Exception("This mode is not supported: {}".format(str(self.mode)))

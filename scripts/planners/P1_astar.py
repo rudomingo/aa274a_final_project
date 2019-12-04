@@ -168,6 +168,7 @@ class AStar(object):
         """
         ########## Code starts here ##########
         while (len(self.open_set) > 0):
+            rospy.loginfo("AStar: Computing...")
             current_state = self.find_best_est_cost_through()
 
             # Check if current state is the goal state
