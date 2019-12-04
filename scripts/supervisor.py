@@ -345,7 +345,7 @@ class Supervisor:
 
         marker.id = 0 # robot marker id is 0
 
-        marker.type = 2 # sphere
+        marker.type = 11 # sphere
 
         marker.pose.position.x = self.x
         marker.pose.position.y = self.y
