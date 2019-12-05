@@ -38,7 +38,13 @@ class DetectorParams:
         self.use_tf = rospy.get_param("use_tf")
 
         # Path to the trained conv net
+<<<<<<< HEAD
+        # model_path = rospy.get_param("~model_path", "../tfmodels/stop_signs_gazebo.pb")
+        model_path = rospy.get_param("~model_path", "../tfmodels/ssd_resnet_50_fpn.pb")
+
+=======
         model_path = rospy.get_param("~model_path", "../tfmodels/stop_signs_gazebo.pb")
+>>>>>>> 9c2459e15c58cfdd5c6cb914a41fa2bb636763c9
         label_path = rospy.get_param("~label_path", "../tfmodels/coco_labels.txt")
         self.model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), model_path)
         self.label_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), label_path)

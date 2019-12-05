@@ -18,13 +18,23 @@ from visualization_msgs.msg import Marker
 
 from dynamic_reconfigure.server import Server
 from asl_turtlebot.cfg import NavigatorConfig
+from asl_turtlebot.msg import DetectedObject, DetectedObjectList
 
 # state machine modes, not all implemented
+OBJECT_CONFIDENCE_THESH = 0.5
+
+
+
+# state machine modes, not all implemented
+
 class Mode(Enum):
     IDLE = 0
     ALIGN = 1
     TRACK = 2
     PARK = 3
+    ROLL = 4
+
+
 
 class Navigator:
     """
@@ -104,14 +114,23 @@ class Navigator:
 
         self.cfg_srv = Server(NavigatorConfig, self.dyn_cfg_callback)
 
+
+        #stop sign parameters
+        self.stop_min_dist = 15
+        self.stop_sign_roll_start = 0
+        self.stop_sign_stop_time = 3
+
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         rospy.Subscriber('/map_metadata', MapMetaData, self.map_md_callback)
         rospy.Subscriber('/cmd_nav', Pose2D, self.cmd_nav_callback)
+        #For the stop sign
+        rospy.Subscriber('/detector/stop_sign', DetectedObject, self.stop_sign_detected_callback)
 
-        # For rviz markers
+        # For rviz markers (eta)
         self.vis_pub = rospy.Publisher('/eta', Marker, queue_size=10)
 
         print "finished init"
+
         
     def dyn_cfg_callback(self, config, level):
         rospy.loginfo("NAVIGATOR: Reconfigure Request: k1:{k1}, k2:{k2}, k3:{k3}".format(**config))
@@ -167,6 +186,33 @@ class Navigator:
         cmd_vel.linear.x = 0.0
         cmd_vel.angular.z = 0.0
         self.nav_vel_pub.publish(cmd_vel)
+
+
+    def stop_sign_detected_callback(self, msg):
+    """ callback for when the detector has found a stop sign. Note that
+    a distance of 0 can mean that the lidar did not pickup the stop sign at all """
+
+    # distance of the stop sign
+        dist = msg.distance
+        rospy.loginfo("Detected stop sign")
+        rospy.loginfo(dist)
+
+    # if close enough and in nav mode, stop
+        if dist > 0 and dist < self.stop_min_dist and self.mode == Mode.TRACK and msg.confidence > OBJECT_CONFIDENCE_THESH:
+            rospy.loginfo("Initializing roll and changing v_max and v_des")
+            self.init_stop_sign()
+
+    def init_stop_sign(self):
+        self.stop_sign_roll_start = rospy.get_rostime()
+        self.traj_controller.V_max = 0.1
+        self.pose_controller.V_max = 0.1
+        self.v_des = 0.06
+        self.mode = Mode.ROLL
+
+
+    def has_rolled(self):
+        return (self.Mode == Mode.ROLL and rospy.get_rostime() - self.stop_sign_roll_start > rospy.Duration.from_sec(self.stop_sign_stop_time))
+
 
     def near_goal(self):
         """
@@ -234,7 +280,7 @@ class Navigator:
 
         if self.mode == Mode.PARK:
             V, om = self.pose_controller.compute_control(self.x, self.y, self.theta, t)
-        elif self.mode == Mode.TRACK:
+        elif self.mode == Mode.TRACK or self.mode == Mode.ROLL:
             V, om = self.traj_controller.compute_control(self.x, self.y, self.theta, t)
         elif self.mode == Mode.ALIGN:
             V, om = self.heading_controller.compute_control(self.x, self.y, self.theta, t)
@@ -382,10 +428,18 @@ class Navigator:
             elif self.mode == Mode.PARK:
                 #if self.at_goal():
                     # forget about goal:
-	        self.x_g = None
-	        self.y_g = None
-	        self.theta_g = None
-	        self.switch_mode(Mode.IDLE)
+                    self.x_g = None
+                    self.y_g = None
+                    self.theta_g = None
+                    self.switch_mode(Mode.IDLE)
+            elif self.mode == Mode.ROLL:
+                rospy.loginfo("Rolling...")
+                if self.has_rolled():
+                    rospy.loginfo("Finishd rolling")
+                    self.traj_controller.V_max = 0.2
+                    self.pose_controller.V_max = 0.2
+                    self.v_des = 0.12
+                    self.mode = TRACK
 
             self.publish_control()
             rate.sleep()
@@ -411,7 +465,8 @@ class Navigator:
 
         marker.scale.x = 0.4
         marker.scale.y = 0.1
-        marker.scale.z = 0.4
+        marker.scale.z = 0.2
+
 
         marker.color.a = 1.0 # Don't forget to set the alpha!
         marker.color.r = 0.02
