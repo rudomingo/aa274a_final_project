@@ -119,6 +119,8 @@ class Navigator:
         self.stop_min_dist = 15
         self.stop_sign_roll_start = 0
         self.stop_sign_stop_time = 3
+        self.wait_time = 1
+        self.first_seen_time = -1
 
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         rospy.Subscriber('/map_metadata', MapMetaData, self.map_md_callback)
@@ -197,10 +199,14 @@ class Navigator:
         rospy.loginfo("Detected stop sign")
         rospy.loginfo(dist)
 
+
     # if close enough and in nav mode, stop
         if dist > 0 and dist < self.stop_min_dist and self.mode == Mode.TRACK and msg.confidence > OBJECT_CONFIDENCE_THESH:
-            rospy.loginfo("Initializing roll and changing v_max and v_des")
-            self.init_stop_sign()
+            if self.first_seen_time == -1:
+                self.first_seen_time = rospy.get_rostime()
+            elif rospy.get_rostime() - self.first_seen_time > rospy.Duration.from_sec(self.wait_time) and self.mode == Mode.TRACK:
+                rospy.loginfo("Initializing roll and changing v_max and v_des")
+                self.init_stop_sign()
 
     def init_stop_sign(self):
         self.stop_sign_roll_start = rospy.get_rostime()
@@ -211,7 +217,7 @@ class Navigator:
 
 
     def has_rolled(self):
-        return (self.Mode == Mode.ROLL and rospy.get_rostime() - self.stop_sign_roll_start > rospy.Duration.from_sec(self.stop_sign_stop_time))
+        return (self.mode == Mode.ROLL and rospy.get_rostime() - self.stop_sign_roll_start > rospy.Duration.from_sec(self.stop_sign_stop_time))
 
 
     def near_goal(self):
@@ -439,7 +445,8 @@ class Navigator:
                     self.traj_controller.V_max = 0.2
                     self.pose_controller.V_max = 0.2
                     self.v_des = 0.12
-                    self.mode = TRACK
+                    self.mode = Mode.TRACK
+                    self.first_seen_time = -1
 
             self.publish_control()
             rate.sleep()
