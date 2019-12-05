@@ -38,13 +38,9 @@ class DetectorParams:
         self.use_tf = rospy.get_param("use_tf")
 
         # Path to the trained conv net
-<<<<<<< HEAD
         # model_path = rospy.get_param("~model_path", "../tfmodels/stop_signs_gazebo.pb")
-        model_path = rospy.get_param("~model_path", "../tfmodels/ssd_resnet_50_fpn.pb")
+        model_path = rospy.get_param("~model_path", "../tfmodels/ssd_resnet_50_fpn_coco.pb")
 
-=======
-        model_path = rospy.get_param("~model_path", "../tfmodels/stop_signs_gazebo.pb")
->>>>>>> 9c2459e15c58cfdd5c6cb914a41fa2bb636763c9
         label_path = rospy.get_param("~label_path", "../tfmodels/coco_labels.txt")
         self.model_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), model_path)
         self.label_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), label_path)
@@ -160,20 +156,20 @@ class Detector:
         return np.array(img.data).reshape((im_height, im_width, 3)).astype(np.uint8)
 
     def project_pixel_to_ray(self, u, v):
-        """ takes in a pixel coordinate (u,v) and returns a tuple (x,y,z)
-        that is a unit vector in the direction of the pixel, in the camera frame """
+		""" takes in a pixel coordinate (u,v) and returns a tuple (x,y,z)
+		that is a unit vector in the direction of the pixel, in the camera frame """
 
-        ########## Code starts here ##########
-        # TODO: Compute x, y, z.
-        x = (u - self.cx) / self.fx
-        y = (v - self.cy) / self.fy
-        z = 1.
-	coords = np.array([x, y, z])
-	coords = coords / np.linalg.norm(coords)
-	x, y, z = coords
-        ########## Code ends here ##########
+		########## Code starts here ##########
+		# TODO: Compute x, y, z.
+		x = (u - self.cx) / self.fx
+		y = (v - self.cy) / self.fy
+		z = 1.
+		coords = np.array([x, y, z])
+		coords = coords / np.linalg.norm(coords)
+		x, y, z = coords
+		########## Code ends here ##########
 
-        return x, y, z
+		return x, y, z
 
     def estimate_distance(self, thetaleft, thetaright, ranges):
         """ estimates the distance of an object in between two angles
@@ -261,18 +257,18 @@ class Detector:
         cv2.waitKey(1)
 
     def camera_info_callback(self, msg):
-        """ extracts relevant camera intrinsic parameters from the camera_info message.
-        cx, cy are the center of the image in pixel (the principal point), fx and fy are
-        the focal lengths. """
+		""" extracts relevant camera intrinsic parameters from the camera_info message.
+		cx, cy are the center of the image in pixel (the principal point), fx and fy are
+		the focal lengths. """
 
-        ########## Code starts here ##########
-        # TODO: Extract camera intrinsic parameters.
-	K = msg.K
-        self.cx = K[2]
-        self.cy = K[5]
-        self.fx = K[0]
-        self.fy = K[4]
-        ########## Code ends here ##########
+		########## Code starts here ##########
+		# TODO: Extract camera intrinsic parameters.
+		K = msg.K
+		self.cx = K[2]
+		self.cy = K[5]
+		self.fx = K[0]
+		self.fy = K[4]
+		########## Code ends here ##########
 
     def laser_callback(self, msg):
         """ callback for thr laser rangefinder """
