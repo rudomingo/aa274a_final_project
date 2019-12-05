@@ -3,6 +3,7 @@ import rospy
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from utils import plot_line_segments
+import rospy
 
 class AStar(object):
     """Represents a motion planning problem to be solved using A*"""
@@ -168,7 +169,12 @@ class AStar(object):
                 set membership efficiently using the syntax "if item in set".
         """
         ########## Code starts here ##########
+	start_time = rospy.get_rostime()
         while (len(self.open_set) > 0):
+	    time_elapsed = (rospy.get_rostime() - start_time).to_sec()
+	    if time_elapsed > 5.0:
+		return False
+
             #rospy.loginfo("AStar: Computing...")
             current_state = self.find_best_est_cost_through()
 

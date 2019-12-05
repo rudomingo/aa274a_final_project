@@ -196,7 +196,7 @@ class Navigator:
         return (self.plan_resolution*round(x[0]/self.plan_resolution), self.plan_resolution*round(x[1]/self.plan_resolution))
 
     def switch_mode(self, new_mode):
-        rospy.loginfo("Switching from %s -> %s", self.mode, new_mode)
+        rospy.loginfo("NAVIGATOR: Switching from %s -> %s", self.mode, new_mode)
         self.mode = new_mode
 
     def publish_planned_path(self, path, publisher):
@@ -239,8 +239,9 @@ class Navigator:
         elif self.mode == Mode.ALIGN:
             V, om = self.heading_controller.compute_control(self.x, self.y, self.theta, t)
         else:
-            V = 0.
-            om = 0.
+	    return
+            #V = 0.
+            #om = 0.
 
         cmd_vel = Twist()
         cmd_vel.linear.x = V
@@ -379,12 +380,12 @@ class Navigator:
                     self.replan() # we aren't near the goal but we thought we should have been, so replan
                 self.displayETA()
             elif self.mode == Mode.PARK:
-                if self.at_goal():
+                #if self.at_goal():
                     # forget about goal:
-                    self.x_g = None
-                    self.y_g = None
-                    self.theta_g = None
-                    self.switch_mode(Mode.IDLE)
+	        self.x_g = None
+	        self.y_g = None
+	        self.theta_g = None
+	        self.switch_mode(Mode.IDLE)
 
             self.publish_control()
             rate.sleep()

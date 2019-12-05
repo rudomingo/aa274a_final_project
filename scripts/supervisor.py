@@ -45,8 +45,8 @@ class SupervisorParams:
         self.mapping = rospy.get_param("map")
 
         # Threshold at which we consider the robot at a location
-        self.pos_eps = rospy.get_param("~pos_eps", 0.1)
-        self.theta_eps = rospy.get_param("~theta_eps", 0.3)
+        self.pos_eps = rospy.get_param("~pos_eps", 0.2)
+        self.theta_eps = rospy.get_param("~theta_eps", 0.7)
 
         # Time to stop at a stop sign
         self.stop_time = rospy.get_param("~stop_time", 3.)
@@ -205,7 +205,7 @@ class Supervisor:
                     self.requests.append(location)
 
 	    if len(self.requests) > 0:
-		self.reqeusts.append(HOME_LOCATION)
+		self.requests.append(HOME_LOCATION)
                 self.go_to_next_request()
                 self.mode = Mode.NAV
 
@@ -308,7 +308,7 @@ class Supervisor:
             # add marker
             marker = Marker()
 
-            marker.header.frame_id = "/my_frame"
+            marker.header.frame_id = "/map"
             marker.header.stamp = rospy.Time()
 
             # so we don't create millions of markers over time
@@ -324,18 +324,18 @@ class Supervisor:
             marker.pose.position.y = loc.y
             #marker.pose.position.x = loc[0]
             #marker.pose.position.y = loc[1]
-            marker.pose.position.z = 0
+            marker.pose.position.z = 0.1
 
             marker.pose.orientation.x = 0.0
             marker.pose.orientation.y = 0.0
             marker.pose.orientation.z = 0.0
             marker.pose.orientation.w = 1.0
 
-            marker.scale.x = 0.7
-            marker.scale.y = 0.7
-            marker.scale.z = 0.7
-            if name == 'home':
-                marker.color.a = 0.0
+            marker.scale.x = 0.2
+            marker.scale.y = 0.2
+            marker.scale.z = 0.2
+            if name == HOME_LOCATION:
+                marker.color.a = 1.0
                 marker.color.r = 1.0
                 marker.color.g = 0.0
                 marker.color.b = 0.0
@@ -408,9 +408,8 @@ class Supervisor:
         self.publish_robot_loc()
     
         if self.mode == Mode.IDLE:
-            pass
             # Send zero velocity
-            #self.stay_idle()
+            self.stay_idle()
             #rospy.loginfo("Idling...")
 
         elif self.mode == Mode.POSE:
