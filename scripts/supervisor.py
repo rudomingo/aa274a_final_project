@@ -329,10 +329,10 @@ class Supervisor:
             marker.scale.y = 0.7
             marker.scale.z = 0.7
             if name == 'home':
-		marker.color.a = 0.0
-		marker.color.r - 1.0
-		marker.color.g = 0.0
-		marker.color.b = 0.0
+                marker.color.a = 0.0
+                marker.color.r = 1.0
+                marker.color.g = 0.0
+                marker.color.b = 0.0
             else:
             	marker.color.a = 1.0 # Don't forget to set the alpha!
             	marker.color.r = 0.5
