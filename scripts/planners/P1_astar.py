@@ -1,4 +1,5 @@
 import numpy as np
+import rospy
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from utils import plot_line_segments
@@ -168,7 +169,7 @@ class AStar(object):
         """
         ########## Code starts here ##########
         while (len(self.open_set) > 0):
-            rospy.loginfo("AStar: Computing...")
+            #rospy.loginfo("AStar: Computing...")
             current_state = self.find_best_est_cost_through()
 
             # Check if current state is the goal state
@@ -190,7 +191,7 @@ class AStar(object):
                 self.came_from[n] = current_state
                 self.cost_to_arrive[n] = tentative_cost_to_arrive
                 self.est_cost_through[n] = tentative_cost_to_arrive + self.distance(n, self.x_goal)
-        return True
+        return False
         ########## Code ends here ##########
 
 class DetOccupancyGrid2D(object):

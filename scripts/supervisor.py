@@ -11,11 +11,12 @@ import tf
 import Queue
 from visualization_msgs.msg import Marker
 
-# Statically define the number of locations that the robot should have explored
-NUM_LOCATIONS_EXPLORED = 1
-
 # Define the objects that we want to be able to detect. Save them in a set for easy lookup
-OBJECTS_OF_INTEREST = {'banana', 'airplane', 'cup'} 
+OBJECTS_OF_INTEREST = {'wine_glass', 'airplane', 'cup'} 
+
+# Statically define the number of locations that the robot should have explored
+NUM_LOCATIONS_EXPLORED = len(OBJECTS_OF_INTEREST)
+
 OBJECT_CONFIDENCE_THESH = 0.5
 OBJECT_DISTANCE_THESH = 15
 
@@ -86,9 +87,9 @@ class Supervisor:
         #self.mode = Mode.IDLE
         self.prev_mode = None  # For printing purposes
 
-        #self.delivery_locations = {}
+        self.delivery_locations = {}
         #for testing
-        self.delivery_locations = {'food1': [1, 5, 2], 'food2': [7,8,5], 'food3':[-0.136055752635, -1.08409714699, -0.716856360435], 'food4': [-0.223887324333, -2.57097697258, -0.656349420547], 'food5':[-0.697493612766, -2.98323106766, 0.987384736538], 'food6': [-1.51829814911, -1.35810863972, 0.725559353828]}
+        #self.delivery_locations = {'food1': [1, 5, 2], 'food2': [7,8,5], 'food3':[-0.136055752635, -1.08409714699, -0.716856360435], 'food4': [-0.223887324333, -2.57097697258, -0.656349420547], 'food5':[-0.697493612766, -2.98323106766, 0.987384736538], 'food6': [-1.51829814911, -1.35810863972, 0.725559353828]}
         self.requests = []
         self.vendor_marker_ids = {}
         ########## PUBLISHERS ##########
@@ -108,9 +109,6 @@ class Supervisor:
 
         # Stop sign detector
         rospy.Subscriber('/detector/stop_sign', DetectedObject, self.stop_sign_detected_callback)
-
-        # High-level navigation pose
-        # rospy.Subscriber('/nav_pose', Pose2D, self.nav_pose_callback)
 
         # Listen to object detector and save locations of interest
         rospy.Subscriber('/detector/objects', DetectedObjectList, self.detected_objects_callback, queue_size=10)
@@ -169,7 +167,6 @@ class Supervisor:
     #     self.mode = Mode.NAV
 
     def detected_objects_callback(self, msg):
-        print("Detected an object!!!")
         # Iterate through all of the objects found by the detector
         for name,obj in zip(msg.objects, msg.ob_msgs):
             # Check to see if the object has not already been seen and if it is an object of interest
@@ -187,21 +184,28 @@ class Supervisor:
 
                     # Once all objects have been found, then start the request cycle
                     if len(self.delivery_locations.keys()) == NUM_LOCATIONS_EXPLORED:
-                        print("FOUND ALL DELIVERY LOCATIONS")
+                        rospy.loginfo("SUPERVISOR: Found all delivery locations.")
                         self.mode = Mode.IDLE
 
     def request_callback(self, msg):
-        rospy.loginfo("Receiving request...")
+        rospy.loginfo("SUPERVISOR: Receiving request {}".format(msg.data))
+        if msg.data == 'clear':
+            self.requests = []
+            self.mode = Mode.IDLE
+            return
+
         if len(self.requests) == 0:
-            # for location in msg.split(','):
-            rospy.loginfo("Processing request...")
-            for location in self.delivery_locations:
-                #this is a string
-                self.requests.append(location)
-            self.go_to_next_request()
-            print("switching to Nav")
-            print(self.requests)
-            self.mode = Mode.NAV
+            for location in msg.data.split(','):
+                if location not in self.delivery_locations.keys(): 
+                    rospy.loginfo("SUPERVISOR: Location %s invalid. Skipping.", location)
+                    continue
+                else:
+                    rospy.loginfo("SUPERVISOR: Processing request...")
+                    self.requests.append(location)
+
+	    if len(self.requests) > 0:
+                self.go_to_next_request()
+                self.mode = Mode.NAV
 
 
     def stop_sign_detected_callback(self, msg):
@@ -224,12 +228,12 @@ class Supervisor:
     # useful. There is no single "correct implementation".
     def go_to_next_request(self):
         goal_pose = self.delivery_locations[self.requests[0]]
-        #self.x_g = goal_pose.x
-        #self.y_g = goal_pose.y
-        #self.theta_g = goal_pose.theta
-        self.x_g = goal_pose[0]
-        self.y_g = goal_pose[1]
-        self.theta_g = goal_pose[2]
+        self.x_g = goal_pose.x
+        self.y_g = goal_pose.y
+        self.theta_g = goal_pose.theta
+        #self.x_g = goal_pose[0]
+        #self.y_g = goal_pose[1]
+        #self.theta_g = goal_pose[2]
 
 
 
@@ -392,7 +396,7 @@ class Supervisor:
 
         # logs the current mode
         if self.prev_mode != self.mode:
-            rospy.loginfo("Current mode: %s", self.mode)
+            rospy.loginfo("SUPERVISOR: Current mode: %s", self.mode)
             self.prev_mode = self.mode
 
         ########## Code starts here ##########
@@ -402,9 +406,10 @@ class Supervisor:
         self.publish_robot_loc()
     
         if self.mode == Mode.IDLE:
+            pass
             # Send zero velocity
             #self.stay_idle()
-            rospy.loginfo("Idling...")
+            #rospy.loginfo("Idling...")
 
         elif self.mode == Mode.POSE:
 
@@ -426,7 +431,6 @@ class Supervisor:
 
         elif self.mode == Mode.NAV:
             if self.close_to(self.x_g, self.y_g, self.theta_g):
-                print("close to destination")
                 self.requests.pop(0)
                 if len(self.requests) == 0:
                     self.mode = Mode.IDLE
@@ -436,7 +440,7 @@ class Supervisor:
                 self.nav_to_pose()
 
         elif self.mode == Mode.EXPLORE:
-            rospy.loginfo("Exploring...")
+            pass
 
         else:
             raise Exception("This mode is not supported: {}".format(str(self.mode)))
