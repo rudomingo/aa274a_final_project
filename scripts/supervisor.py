@@ -420,6 +420,7 @@ class Supervisor:
                 self.go_to_pose()
 
         elif self.mode == Mode.STOP:
+            rospy.loginfo("I see a stop sign!")
             # Check to see if the robot has stopped long enough
             if (self.has_stopped()):
                 self.init_crossing()
