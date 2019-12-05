@@ -84,7 +84,7 @@ class Navigator:
         self.start_pos_thresh = 0.2     # threshold to be far enough into the plan to recompute it
 
         # threshold at which navigator switches from trajectory to pose control
-        self.near_thresh = 0.2
+        self.near_thresh = 0.3
         self.at_thresh = 0.02
         self.at_thresh_theta = 0.05
 
@@ -116,11 +116,13 @@ class Navigator:
 
 
         #stop sign parameters
-        self.stop_min_dist = 15
+        self.stop_min_dist = 2
         self.stop_sign_roll_start = 0
-        self.stop_sign_stop_time = 3
+
+        self.stop_sign_stop_time = 4
         self.wait_time = 1
         self.first_seen_time = -1
+
 
         rospy.Subscriber('/map', OccupancyGrid, self.map_callback)
         rospy.Subscriber('/map_metadata', MapMetaData, self.map_md_callback)
@@ -191,16 +193,15 @@ class Navigator:
 
 
     def stop_sign_detected_callback(self, msg):
-    """ callback for when the detector has found a stop sign. Note that
-    a distance of 0 can mean that the lidar did not pickup the stop sign at all """
+        """ callback for when the detector has found a stop sign. Note that
+        a distance of 0 can mean that the lidar did not pickup the stop sign at all """
 
-    # distance of the stop sign
+        # distance of the stop sign
         dist = msg.distance
         rospy.loginfo("Detected stop sign")
         rospy.loginfo(dist)
 
 
-    # if close enough and in nav mode, stop
         if dist > 0 and dist < self.stop_min_dist and self.mode == Mode.TRACK and msg.confidence > OBJECT_CONFIDENCE_THESH:
             if self.first_seen_time == -1:
                 self.first_seen_time = rospy.get_rostime()
@@ -210,9 +211,9 @@ class Navigator:
 
     def init_stop_sign(self):
         self.stop_sign_roll_start = rospy.get_rostime()
-        self.traj_controller.V_max = 0.1
-        self.pose_controller.V_max = 0.1
-        self.v_des = 0.06
+        self.traj_controller.V_max = 0.05
+        self.pose_controller.V_max = 0.05
+        self.v_des = 0.04
         self.mode = Mode.ROLL
 
 
@@ -361,18 +362,18 @@ class Navigator:
 
         # If currently tracking a trajectory, check whether new trajectory will take more time to follow
         if self.mode == Mode.TRACK:
-            t_remaining_curr = self.current_plan_duration - self.get_current_plan_time()
+			t_remaining_curr = self.current_plan_duration - self.get_current_plan_time()
 
-            # Estimate duration of new trajectory
-            th_init_new = traj_new[0,2]
-            th_err = wrapToPi(th_init_new - self.theta)
-            t_init_align = abs(th_err/self.om_max)
-            t_remaining_new = t_init_align + t_new[-1]
+			# Estimate duration of new trajectory
+			th_init_new = traj_new[0,2]
+			th_err = wrapToPi(th_init_new - self.theta)
+			t_init_align = abs(th_err/self.om_max)
+			t_remaining_new = t_init_align + t_new[-1]
 
-            if t_remaining_new > t_remaining_curr:
-                rospy.loginfo("NAVIGATOR: New plan rejected (longer duration than current plan)")
-                self.publish_smoothed_path(traj_new, self.nav_smoothed_path_rej_pub)
-                return
+			if t_remaining_new > t_remaining_curr:
+				rospy.loginfo("NAVIGATOR: New plan rejected (longer duration than current plan)")
+				self.publish_smoothed_path(traj_new, self.nav_smoothed_path_rej_pub)
+				return
 
         # Otherwise follow the new plan
         self.publish_planned_path(planned_path, self.nav_planned_path_pub)
@@ -434,10 +435,10 @@ class Navigator:
             elif self.mode == Mode.PARK:
                 #if self.at_goal():
                     # forget about goal:
-                    self.x_g = None
-                    self.y_g = None
-                    self.theta_g = None
-                    self.switch_mode(Mode.IDLE)
+				self.x_g = None
+				self.y_g = None
+				self.theta_g = None
+				self.switch_mode(Mode.IDLE)
             elif self.mode == Mode.ROLL:
                 rospy.loginfo("Rolling...")
                 if self.has_rolled():
@@ -447,6 +448,7 @@ class Navigator:
                     self.v_des = 0.12
                     self.mode = Mode.TRACK
                     self.first_seen_time = -1
+
 
             self.publish_control()
             rate.sleep()

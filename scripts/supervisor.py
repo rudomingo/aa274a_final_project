@@ -10,9 +10,11 @@ from std_msgs.msg import Float32MultiArray, String
 import tf
 import Queue
 from visualization_msgs.msg import Marker
+import numpy as np
 
 # Define the objects that we want to be able to detect. Save them in a set for easy lookup
-OBJECTS_OF_INTEREST = {'wine_glass', 'airplane', 'banana', 'cake'} 
+#OBJECTS_OF_INTEREST = {'wine_glass', 'airplane', 'banana', 'cake'} 
+OBJECTS_OF_INTEREST = {'wine_glass', 'airplane'}
 HOME_LOCATION = 'airplane'
 
 # Statically define the number of locations that the robot should have explored
@@ -45,7 +47,7 @@ class SupervisorParams:
         self.mapping = rospy.get_param("map")
 
         # Threshold at which we consider the robot at a location
-        self.pos_eps = rospy.get_param("~pos_eps", 0.2)
+        self.pos_eps = rospy.get_param("~pos_eps", 0.4)
         self.theta_eps = rospy.get_param("~theta_eps", 0.7)
 
         # Time to stop at a stop sign
@@ -218,8 +220,8 @@ class Supervisor:
         dist = msg.distance
 
         # if close enough and in nav mode, stop
-        if dist > 0 and dist < self.params.stop_min_dist and self.mode == Mode.NAV:
-            self.init_stop_sign()
+        #if dist > 0 and dist < self.params.stop_min_dist and self.mode == Mode.NAV:
+            #self.init_stop_sign()
 
 
 
@@ -266,11 +268,13 @@ class Supervisor:
         self.cmd_vel_publisher.publish(vel_g_msg)
 
     def close_to(self, x, y, theta):
-        """ checks if the robot is at a pose within some threshold """
+		""" checks if the robot is at a pose within some threshold """
+		cur_pos = np.array([self.x, self.y])
+		goal_pos = np.array([x, y])
+		distance = np.linalg.norm(cur_pos-goal_pos)
 
-        return abs(x - self.x) < self.params.pos_eps and \
-               abs(y - self.y) < self.params.pos_eps and \
-               abs(theta - self.theta) < self.params.theta_eps
+		#abs(theta - self.theta) < self.params.theta_eps
+		return distance < self.params.pos_eps 
 
     def init_stop_sign(self):
         """ initiates a stop sign maneuver """
