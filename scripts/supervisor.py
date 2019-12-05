@@ -9,6 +9,7 @@ from geometry_msgs.msg import Twist, PoseArray, Pose2D, PoseStamped
 from std_msgs.msg import Float32MultiArray, String
 import tf
 import Queue
+from visualization_msgs.msg import Marker
 
 # Statically define the number of locations that the robot should have explored
 NUM_LOCATIONS_EXPLORED = 3
@@ -85,10 +86,11 @@ class Supervisor:
         #self.mode = Mode.IDLE
         self.prev_mode = None  # For printing purposes
 
-        self.delivery_locations = {}
+        #self.delivery_locations = {}
         #for testing
-        #self.delivery_locations = {'food1': [-0.568619549274, -0.117274023592, 0.0255803875625], 'food2': [0.896323144436, -1.47207510471,  -0.594851076603], 'food3':[-0.136055752635, -1.08409714699, -0.716856360435], 'food4': [-0.223887324333, -2.57097697258, -0.656349420547], 'food5':[-0.697493612766, -2.98323106766, 0.987384736538], 'food6': [-1.51829814911, -1.35810863972, 0.725559353828]}
+        self.delivery_locations = {'food1': [1, 5, 2], 'food2': [7,8,5], 'food3':[-0.136055752635, -1.08409714699, -0.716856360435], 'food4': [-0.223887324333, -2.57097697258, -0.656349420547], 'food5':[-0.697493612766, -2.98323106766, 0.987384736538], 'food6': [-1.51829814911, -1.35810863972, 0.725559353828]}
         self.requests = []
+        self.vendor_marker_ids = {}
         ########## PUBLISHERS ##########
 
         # Command pose for controller
@@ -100,6 +102,8 @@ class Supervisor:
         # Command vel (used for idling)
         self.cmd_vel_publisher = rospy.Publisher('/cmd_vel', Twist, queue_size=10)
 
+        # For rviz markers
+        self.vis_pub = rospy.Publisher('/marker_topic', Marker, queue_size=10)
         ########## SUBSCRIBERS ##########
 
         # Stop sign detector
@@ -162,7 +166,6 @@ class Supervisor:
         self.mode = Mode.NAV
 
     # def nav_pose_callback(self, msg):
-        
     #     self.mode = Mode.NAV
 
     def detected_objects_callback(self, msg):
@@ -179,6 +182,7 @@ class Supervisor:
                     currentPose.theta = self.theta
                     self.delivery_locations[name] = currentPose
                     print(self.delivery_locations)
+
 
                     # Once all objects have been found, then start the request cycle
                     if len(self.delivery_locations.keys()) == NUM_LOCATIONS_EXPLORED:
@@ -228,12 +232,12 @@ class Supervisor:
     # useful. There is no single "correct implementation".
     def go_to_next_request(self):
         goal_pose = self.delivery_locations[self.requests[0]]
-        self.x_g = goal_pose.x
-        self.y_g = goal_pose.y
-        self.theta_g = goal_pose.theta
-        #self.x_g = goal_pose[0]
-        #self.y_g = goal_pose[1]
-        #self.theta_g = goal_pose[2]
+        #self.x_g = goal_pose.x
+        #self.y_g = goal_pose.y
+        #self.theta_g = goal_pose.theta
+        self.x_g = goal_pose[0]
+        self.y_g = goal_pose[1]
+        self.theta_g = goal_pose[2]
 
 
 
@@ -298,6 +302,86 @@ class Supervisor:
 
     ########## Code ends here ##########
 
+    ########## RVIZ VISUALIZATION ##########
+    
+    def publish_vendor_locs(self):
+
+        for name,loc in self.delivery_locations.items():
+            # add marker
+            marker = Marker()
+
+            marker.header.frame_id = "/my_frame"
+            marker.header.stamp = rospy.Time()
+
+            # so we don't create millions of markers over time
+            if name in self.vendor_marker_ids.keys():
+                marker.id = self.vendor_marker_ids[name]
+            else:
+                next_avail_id = len(self.vendor_marker_ids) + 1 # robot is 0, so increment from 1
+                marker.id = next_avail_id
+                self.vendor_marker_ids[name] = next_avail_id
+
+            marker.type = 1 # cube
+            #marker.pose.position.x = loc.x
+            #marker.pose.position.y = loc.y
+            marker.pose.position.x = loc[0]
+	        marker.pose.position.y = loc[1]
+	        marker.pose.position.z = 0
+
+            marker.pose.orientation.x = 0.0
+            marker.pose.orientation.y = 0.0
+            marker.pose.orientation.z = 0.0
+            marker.pose.orientation.w = 1.0
+
+            marker.scale.x = 0.7
+            marker.scale.y = 0.7
+            marker.scale.z = 0.7
+            if name == 'home':
+		marker.color.a = 0.0
+		marker.color.r - 1.0
+		marker.color.g = 0.0
+		marker.color.b = 0.0
+            else:
+            	marker.color.a = 1.0 # Don't forget to set the alpha!
+            	marker.color.r = 0.5
+            	marker.color.g = 0.0
+            	marker.color.b = 1.0
+            
+            self.vis_pub.publish(marker)
+
+
+    def publish_robot_loc(self):
+        marker = Marker()
+
+        marker.header.frame_id = "base_footprint"
+        marker.header.stamp = rospy.Time()
+
+        marker.id = 0 # robot marker id is 0
+
+        marker.type = 0 # sphere
+
+        marker.pose.position.x = self.x
+        marker.pose.position.y = self.y
+        marker.pose.position.z = 0
+
+        marker.pose.orientation.x = 0.0
+        marker.pose.orientation.y = 0.0
+        marker.pose.orientation.z = 0.0
+        marker.pose.orientation.w = 1.0
+
+        marker.scale.x = 0.4
+        marker.scale.y = 0.1
+        marker.scale.z = 0.1
+
+        marker.color.a = 1.0 # Don't forget to set the alpha!
+        marker.color.r = 0.5
+        marker.color.g = 1.0
+        marker.color.b = 0.5
+        rospy.loginfo("publishing marker to robot location: ({}, {})".format(self.x, self.y))
+        self.vis_pub.publish(marker)
+
+    ########## END RVIZ VISUALIZATION ##########
+
 
     ########## STATE MACHINE LOOP ##########
 
@@ -321,6 +405,10 @@ class Supervisor:
             self.prev_mode = self.mode
 
         ########## Code starts here ##########
+
+        # publish vendor and robot locations
+        self.publish_vendor_locs()
+        self.publish_robot_loc()
     
         if self.mode == Mode.IDLE:
 	    pass
