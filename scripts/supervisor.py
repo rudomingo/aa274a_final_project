@@ -186,8 +186,12 @@ class Supervisor:
                         self.mode = Mode.IDLE
 
     def request_callback(self, msg):
-        rospy.loginfo("Receiving request...")
-	print(msg.data)
+        rospy.loginfo("SUPERVISOR: Receiving request {}".format(msg.data))
+	if msg.data == 'clear':
+	    self.requests = []
+	    self.mode = Mode.IDLE
+	    return
+
         if len(self.requests) == 0:
             for location in msg.data.split(','):
 		if location not in self.delivery_locations.keys(): 
