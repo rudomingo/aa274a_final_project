@@ -308,7 +308,7 @@ class Supervisor:
             # add marker
             marker = Marker()
 
-            marker.header.frame_id = "/my_frame"
+            marker.header.frame_id = "/map"
             marker.header.stamp = rospy.Time()
 
             # so we don't create millions of markers over time
@@ -421,6 +421,7 @@ class Supervisor:
                 self.go_to_pose()
 
         elif self.mode == Mode.STOP:
+            rospy.loginfo("I see a stop sign!")
             # Check to see if the robot has stopped long enough
             if (self.has_stopped()):
                 self.init_crossing()
