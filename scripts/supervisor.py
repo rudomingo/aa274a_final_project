@@ -321,8 +321,8 @@ class Supervisor:
             #marker.pose.position.x = loc.x
             #marker.pose.position.y = loc.y
             marker.pose.position.x = loc[0]
-	        marker.pose.position.y = loc[1]
-	        marker.pose.position.z = 0
+            marker.pose.position.y = loc[1]
+            marker.pose.position.z = 0
 
             marker.pose.orientation.x = 0.0
             marker.pose.orientation.y = 0.0
@@ -338,10 +338,10 @@ class Supervisor:
                 marker.color.g = 0.0
                 marker.color.b = 0.0
             else:
-            	marker.color.a = 1.0 # Don't forget to set the alpha!
-            	marker.color.r = 0.5
-            	marker.color.g = 0.0
-            	marker.color.b = 1.0
+                marker.color.a = 1.0 # Don't forget to set the alpha!
+                marker.color.r = 0.5
+                marker.color.g = 0.0
+                marker.color.b = 1.0
             
             self.vis_pub.publish(marker)
 
@@ -412,7 +412,6 @@ class Supervisor:
             #rospy.loginfo("Idling...")
 
         elif self.mode == Mode.POSE:
-
             # Moving towards a desired pose
             if self.close_to(self.x_g, self.y_g, self.theta_g):
                 self.mode = Mode.IDLE
