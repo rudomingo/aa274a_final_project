@@ -84,7 +84,7 @@ class Navigator:
         self.start_pos_thresh = 0.2     # threshold to be far enough into the plan to recompute it
 
         # threshold at which navigator switches from trajectory to pose control
-        self.near_thresh = 0.3
+        self.near_thresh = 0.2
         self.at_thresh = 0.02
         self.at_thresh_theta = 0.05
 
@@ -226,6 +226,7 @@ class Navigator:
         returns whether the robot is close enough in position to the goal to
         start using the pose controller
         """
+        print(linalg.norm(np.array([self.x-self.x_g, self.y-self.y_g])))
         return linalg.norm(np.array([self.x-self.x_g, self.y-self.y_g])) < self.near_thresh
 
     def at_goal(self):
@@ -292,7 +293,7 @@ class Navigator:
         elif self.mode == Mode.ALIGN:
             V, om = self.heading_controller.compute_control(self.x, self.y, self.theta, t)
         else:
-	    return
+			return
             #V = 0.
             #om = 0.
 

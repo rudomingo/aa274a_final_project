@@ -47,7 +47,7 @@ class SupervisorParams:
         self.mapping = rospy.get_param("map")
 
         # Threshold at which we consider the robot at a location
-        self.pos_eps = rospy.get_param("~pos_eps", 0.4)
+        self.pos_eps = rospy.get_param("~pos_eps", 0.3)
         self.theta_eps = rospy.get_param("~theta_eps", 0.7)
 
         # Time to stop at a stop sign

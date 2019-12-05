@@ -1,10 +1,17 @@
 <launch>
 
+  <arg name="model" default="burger" doc="model type [burger, waffle]"/>
   <rosparam param="sim">false</rosparam>
   <rosparam param="rviz">true</rosparam>
   <rosparam param="map">true</rosparam>
 
   <node pkg="asl_turtlebot" type="supervisor.py" name="turtlebot_supervisor" output="screen"/>
   <node pkg="asl_turtlebot" type="navigator.py" name="turtlebot_navigator" output="screen"/>
+
+  <param name="robot_description" command="$(find xacro)/xacro.py $(find asl_turtlebot)/urdf/turtlebot3_$(arg model).urdf.xacro" />
+
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">
+    <param name="publish_frequency" type="double" value="10.0" />
+  </node>
   
 </launch>
