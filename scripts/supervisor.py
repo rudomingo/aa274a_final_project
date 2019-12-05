@@ -12,7 +12,8 @@ import Queue
 from visualization_msgs.msg import Marker
 
 # Define the objects that we want to be able to detect. Save them in a set for easy lookup
-OBJECTS_OF_INTEREST = {'wine_glass', 'airplane', 'cup'} 
+OBJECTS_OF_INTEREST = {'wine_glass', 'airplane', 'banana', 'cake'} 
+HOME_LOCATION = 'airplane'
 
 # Statically define the number of locations that the robot should have explored
 NUM_LOCATIONS_EXPLORED = len(OBJECTS_OF_INTEREST)
@@ -204,6 +205,7 @@ class Supervisor:
                     self.requests.append(location)
 
 	    if len(self.requests) > 0:
+		self.reqeusts.append(HOME_LOCATION)
                 self.go_to_next_request()
                 self.mode = Mode.NAV
 
@@ -318,10 +320,10 @@ class Supervisor:
                 self.vendor_marker_ids[name] = next_avail_id
 
             marker.type = 1 # cube
-            #marker.pose.position.x = loc.x
-            #marker.pose.position.y = loc.y
-            marker.pose.position.x = loc[0]
-            marker.pose.position.y = loc[1]
+            marker.pose.position.x = loc.x
+            marker.pose.position.y = loc.y
+            #marker.pose.position.x = loc[0]
+            #marker.pose.position.y = loc[1]
             marker.pose.position.z = 0
 
             marker.pose.orientation.x = 0.0
@@ -356,9 +358,9 @@ class Supervisor:
 
         marker.type = 0 # arrow
 
-        marker.pose.position.x = self.x
-        marker.pose.position.y = self.y
-        marker.pose.position.z = 0
+        marker.pose.position.x = 0.0 
+        marker.pose.position.y = 0.0 
+        marker.pose.position.z = 0.0
 
         marker.pose.orientation.x = 0.0
         marker.pose.orientation.y = 0.0
