@@ -14,8 +14,8 @@ import numpy as np
 
 # Define the objects that we want to be able to detect. Save them in a set for easy lookup
 #OBJECTS_OF_INTEREST = {'wine_glass', 'airplane', 'banana', 'cake'} 
-OBJECTS_OF_INTEREST = {'wine_glass', 'airplane'}
-HOME_LOCATION = 'airplane'
+OBJECTS_OF_INTEREST = {'donut', 'bird'}
+HOME_LOCATION = 'bird'
 
 # Statically define the number of locations that the robot should have explored
 NUM_LOCATIONS_EXPLORED = len(OBJECTS_OF_INTEREST)
@@ -48,7 +48,7 @@ class SupervisorParams:
 
         # Threshold at which we consider the robot at a location
         self.pos_eps = rospy.get_param("~pos_eps", 0.3)
-        self.theta_eps = rospy.get_param("~theta_eps", 0.7)
+        self.theta_eps = rospy.get_param("~theta_eps", 0.9)
 
         # Time to stop at a stop sign
         self.stop_time = rospy.get_param("~stop_time", 3.)
