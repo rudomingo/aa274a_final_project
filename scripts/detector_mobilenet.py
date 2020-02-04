@@ -11,29 +11,37 @@ from asl_turtlebot.msg import DetectedObject, DetectedObjectList
 from cv_bridge import CvBridge, CvBridgeError
 import cv2
 import math
+from anpr_detect import DigitDetector
+from anpr_common import CHARS
 
 # path to the trained conv net
 PATH_TO_MODEL = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../tfmodels/ssd_mobilenet_v1_coco.pb')
 PATH_TO_LABELS = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../tfmodels/coco_labels.txt')
+PATH_TO_ANPR_WEIGHTS = os.path.join(os.path.dirname(os.path.realpath(__file__)) ,'../tfmodels/anpr_weights.npz')
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1'
 
 # set to True to use tensorflow and a conv net
 # False will use a very simple color thresholding to detect stop signs only
 USE_TF = True
 # minimum score for positive detection
-MIN_SCORE = .5
+MIN_SCORE = .75
+
+RECOGNIZE = 'digits' # set this either 'digits' or 'objects'
 
 def load_object_labels(filename):
     """ loads the coco object readable name """
-
-    fo = open(filename,'r')
-    lines = fo.readlines()
-    fo.close()
     object_labels = {}
-    for l in lines:
-        object_id = int(l.split(':')[0])
-        label = l.split(':')[1][1:].replace('\n','').replace('-','_').replace(' ','_')
-        object_labels[object_id] = label
-
+    if (RECOGNIZE == 'digits'):
+        for i in range(10):
+            object_labels[i] = str(i)
+    else:
+        fo = open(filename,'r')
+        lines = fo.readlines()
+        fo.close()
+        for l in lines:
+            object_id = int(l.split(':')[0])
+            label = l.split(':')[1][1:].replace('\n','').replace('-','_').replace(' ','_')
+            object_labels[object_id] = label
     return object_labels
 
 class Detector:
@@ -44,7 +52,7 @@ class Detector:
 
         self.detected_objects_pub = rospy.Publisher('/detector/objects', DetectedObjectList, queue_size=10)
 
-        if USE_TF:
+        if USE_TF and RECOGNIZE == 'objects':
             self.detection_graph = tf.Graph()
             with self.detection_graph.as_default():
                 od_graph_def = tf.GraphDef()
@@ -61,6 +69,8 @@ class Detector:
                 config.gpu_options.allow_growth = True
             self.sess = tf.Session(graph=self.detection_graph, config=config)
             # self.sess = tf.Session(graph=self.detection_graph)
+        elif USE_TF and RECOGNIZE == 'digits':
+            self.detector = DigitDetector(PATH_TO_ANPR_WEIGHTS, MIN_SCORE)
 
         # camera and laser parameters that get updated
         self.cx = 0.
@@ -86,15 +96,18 @@ class Detector:
         image_np_expanded = np.expand_dims(image_np, axis=0)
 
         if USE_TF:
-            # uses MobileNet to detect objects in images
-            # this works well in the real world, but requires
-            # good computational resources
-            with self.detection_graph.as_default():
-                (boxes, scores, classes, num) = self.sess.run(
-                [self.d_boxes,self.d_scores,self.d_classes,self.num_d],
-                feed_dict={self.image_tensor: image_np_expanded})
+            if (RECOGNIZE == 'objects'):
+                # uses MobileNet to detect objects in images
+                # this works well in the real world, but requires
+                # good computational resources
+                with self.detection_graph.as_default():
+                    (boxes, scores, classes, num) = self.sess.run(
+                    [self.d_boxes,self.d_scores,self.d_classes,self.num_d],
+                    feed_dict={self.image_tensor: image_np_expanded})
 
-            return self.filter(boxes[0], scores[0], classes[0], num[0])
+                return self.filter(boxes[0], scores[0], classes[0], num[0])
+            else:
+                return self.detector.detect(img)
 
         else:
             # uses a simple color threshold to detect stop signs
