@@ -37,7 +37,7 @@ import tensorflow as tf
 import anpr_common
 
 
-WINDOW_SHAPE = (64, 128)
+WINDOW_SHAPE = (64, 96)
 
 
 # Utility functions
@@ -104,10 +104,10 @@ def get_training_model():
     x, conv_layer, conv_vars = convolutional_layers()
     
     # Densely connected layer
-    W_fc1 = weight_variable([32 * 8 * 128, 256])
+    W_fc1 = weight_variable([24 * 8 * 128, 256])
     b_fc1 = bias_variable([256])
 
-    conv_layer_flat = tf.reshape(conv_layer, [-1, 32 * 8 * 128])
+    conv_layer_flat = tf.reshape(conv_layer, [-1, 24 * 8 * 128])
     h_fc1 = tf.nn.relu(tf.matmul(conv_layer_flat, W_fc1) + b_fc1)
 
     # Output layer
@@ -131,8 +131,8 @@ def get_detect_model():
     x, conv_layer, conv_vars = convolutional_layers()
     
     # Third layer
-    W_fc1 = weight_variable([8 * 32 * 128, 256])
-    W_conv1 = tf.reshape(W_fc1, [8,  32, 128, 256])
+    W_fc1 = weight_variable([8 * 24 * 128, 256])
+    W_conv1 = tf.reshape(W_fc1, [8,  24, 128, 256])
     b_fc1 = bias_variable([256])
     h_conv1 = tf.nn.relu(conv2d(conv_layer, W_conv1,
                                 stride=(1, 1), padding="VALID") + b_fc1) 
