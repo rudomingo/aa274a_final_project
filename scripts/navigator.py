@@ -297,7 +297,6 @@ class Navigator:
         returns whether the robot has reached the goal position with enough
         accuracy to return to idle state
         """
-        print("{}\t{}".format(linalg.norm(np.array([self.x-self.x_g, self.y-self.y_g])), abs(wrapToPi(self.theta - self.theta_g))))
         return (linalg.norm(np.array([self.x-self.x_g, self.y-self.y_g])) < self.near_thresh and abs(wrapToPi(self.theta - self.theta_g)) < self.at_thresh_theta)
 
     def aligned(self):
