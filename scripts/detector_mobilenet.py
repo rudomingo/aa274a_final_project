@@ -13,6 +13,7 @@ import cv2
 import math
 from anpr_detect import DigitDetector
 from anpr_common import CHARS
+from anpr_common import LENGTH as PLATE_LENGTH
 
 # path to the trained conv net
 PATH_TO_MODEL = os.path.join(os.path.dirname(os.path.realpath(__file__)), '../tfmodels/ssd_mobilenet_v1_coco.pb')
@@ -26,14 +27,13 @@ USE_TF = True
 # minimum score for positive detection
 MIN_SCORE = .75
 
-RECOGNIZE = 'digits' # set this either 'digits' or 'objects'
+RECOGNIZE = 'objects' # set this either 'digits' or 'objects'
 
 def load_object_labels(filename):
     """ loads the coco object readable name """
     object_labels = {}
     if (RECOGNIZE == 'digits'):
-        for i in range(10):
-            object_labels[i] = str(i)
+        object_labels = {i: str(i).zfill(3) for i in np.arange(len(CHARS)**PLATE_LENGTH)}
     else:
         fo = open(filename,'r')
         lines = fo.readlines()
@@ -84,9 +84,9 @@ class Detector:
         self.object_labels = load_object_labels(PATH_TO_LABELS)
 
         self.tf_listener = TransformListener()
-        rospy.Subscriber('/raspicam_node/image_raw', Image, self.camera_callback, queue_size=1, buff_size=2**24)
-        rospy.Subscriber('/raspicam_node/image/compressed', CompressedImage, self.compressed_camera_callback, queue_size=1, buff_size=2**24)
-        rospy.Subscriber('/raspicam_node/camera_info', CameraInfo, self.camera_info_callback)
+        rospy.Subscriber('/camera_relay/image_raw', Image, self.camera_callback, queue_size=1, buff_size=2**24)
+        rospy.Subscriber('/camera_relay/image/compressed', CompressedImage, self.compressed_camera_callback, queue_size=1, buff_size=2**24)
+        rospy.Subscriber('/camera_relay/camera_info', CameraInfo, self.camera_info_callback)
         rospy.Subscriber('/scan', LaserScan, self.laser_callback)
 
     def run_detection(self, img):

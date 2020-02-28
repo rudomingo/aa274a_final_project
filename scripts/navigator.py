@@ -20,10 +20,16 @@ from dynamic_reconfigure.server import Server
 from asl_turtlebot.cfg import NavigatorConfig
 from asl_turtlebot.msg import DetectedObject, DetectedObjectList
 
-# state machine modes, not all implemented
+# Define the objects that we want to be able to detect. Save them in a set for easy lookup
+#OBJECTS_OF_INTEREST = {'wine_glass', 'airplane', 'banana', 'cake'} 
+OBJECTS_OF_INTEREST = {'donut', 'bird'}
+HOME_LOCATION = 'bird'
+
+# Statically define the number of locations that the robot should have explored
+NUM_LOCATIONS_EXPLORED = len(OBJECTS_OF_INTEREST)
+
 OBJECT_CONFIDENCE_THESH = 0.5
-
-
+OBJECT_DISTANCE_THESH = 15
 
 # state machine modes, not all implemented
 
@@ -33,6 +39,7 @@ class Mode(Enum):
     TRACK = 2
     PARK = 3
     ROLL = 4
+    EXPLORE = 5
 
 
 
@@ -43,7 +50,10 @@ class Navigator:
     """
     def __init__(self):
         rospy.init_node('turtlebot_navigator', anonymous=True)
-        self.mode = Mode.IDLE
+        self.mode = Mode.EXPLORE
+        self.delivery_locations = {}
+        self.requests = []
+        self.vendor_marker_ids = {}
 
         # current state
         self.x = 0.0
@@ -130,9 +140,15 @@ class Navigator:
         #For the stop sign
         rospy.Subscriber('/detector/stop_sign', DetectedObject, self.stop_sign_detected_callback)
 
-        # For rviz markers (eta)
+        # For ETA rviz markers
         self.vis_pub = rospy.Publisher('/eta', Marker, queue_size=10)
+        # For landmark rviz markers
+        self.vis_pub = rospy.Publisher('/marker_topic', Marker, queue_size=10)
 
+        # Listen to object detector and save locations of interest
+        rospy.Subscriber('/detector/objects', DetectedObjectList, self.detected_objects_callback, queue_size=10)
+        
+        rospy.Subscriber('/delivery_request', String, self.request_callback)
         print "finished init"
 
         
@@ -169,13 +185,20 @@ class Navigator:
         self.map_probs = msg.data
         # if we've received the map metadata and have a way to update it:
         if self.map_width>0 and self.map_height>0 and len(self.map_probs)>0:
+            #self.occupancy = StochOccupancyGrid2D(self.map_resolution,
+                                                  #self.map_width,
+                                                  #self.map_height,
+                                                  #self.map_origin[0],
+                                                  #self.map_origin[1],
+                                                  #8, 
+                                                  #self.map_probs)
             self.occupancy = StochOccupancyGrid2D(self.map_resolution,
                                                   self.map_width,
                                                   self.map_height,
                                                   self.map_origin[0],
                                                   self.map_origin[1],
-                                                  8,
-                                                  self.map_probs)
+                                                  10, # NOTE: Made the window size larger
+                                                  0.4) # NOTE: Made the probability lower
 
             if self.x_g is not None:
                 # if we have a goal to plan to, replan
@@ -209,24 +232,63 @@ class Navigator:
                 rospy.loginfo("Initializing roll and changing v_max and v_des")
                 self.init_stop_sign()
 
+    def detected_objects_callback(self, msg):
+        # Iterate through all of the objects found by the detector
+        for name,obj in zip(msg.objects, msg.ob_msgs):
+            # Check to see if the object has not already been seen and if it is an object of interest
+            if name not in self.delivery_locations.keys() and name in OBJECTS_OF_INTEREST:
+                # Ensure that the object detected is of high confidence and close to the robot
+                if obj.confidence > OBJECT_CONFIDENCE_THESH and obj.distance < OBJECT_DISTANCE_THESH:
+                    # Add the object to the robot list
+                    currentPose = Pose2D()
+                    currentPose.x = self.x
+                    currentPose.y = self.y
+                    currentPose.theta = self.theta
+                    self.delivery_locations[name] = currentPose
+                    print(self.delivery_locations)
+
+
+                    # Once all objects have been found, then start the request cycle
+                    if len(self.delivery_locations.keys()) == NUM_LOCATIONS_EXPLORED:
+                        rospy.loginfo("NAVIGATOR: Found all delivery locations.")
+                        self.switch_mode(Mode.IDLE)
+
+    def request_callback(self, msg):
+        rospy.loginfo("NAVIGATOR: Receiving request {}".format(msg.data))
+        if msg.data == 'clear':
+            self.requests = []
+            self.switch_mode(Mode.IDLE)
+            return
+
+        if len(self.requests) == 0:
+            for location in msg.data.split(','):
+                if location not in self.delivery_locations.keys(): 
+                    rospy.loginfo("NAVIGATOR: Location %s invalid. Skipping.", location)
+                    continue
+                else:
+                    rospy.loginfo("NAVIGATOR: Processing request...")
+                    self.requests.append(location)
+
+	    if len(self.requests) > 0:
+            self.requests.append(HOME_LOCATION)
+            self.go_to_next_request()
+
     def init_stop_sign(self):
         self.stop_sign_roll_start = rospy.get_rostime()
         self.traj_controller.V_max = 0.05
         self.pose_controller.V_max = 0.05
         self.v_des = 0.04
-        self.mode = Mode.ROLL
+        self.switch_mode(Mode.ROLL)
 
 
     def has_rolled(self):
         return (self.mode == Mode.ROLL and rospy.get_rostime() - self.stop_sign_roll_start > rospy.Duration.from_sec(self.stop_sign_stop_time))
-
 
     def near_goal(self):
         """
         returns whether the robot is close enough in position to the goal to
         start using the pose controller
         """
-        #print(linalg.norm(np.array([self.x-self.x_g, self.y-self.y_g])))
         return linalg.norm(np.array([self.x-self.x_g, self.y-self.y_g])) < self.near_thresh
 
     def at_goal(self):
@@ -292,10 +354,11 @@ class Navigator:
             V, om = self.traj_controller.compute_control(self.x, self.y, self.theta, t)
         elif self.mode == Mode.ALIGN:
             V, om = self.heading_controller.compute_control(self.x, self.y, self.theta, t)
+        elif self.mode == Mode.EXPLORE:
+            pass
         else:
-			return
-            #V = 0.
-            #om = 0.
+            V = 0.
+            om = 0.
 
         cmd_vel = Twist()
         cmd_vel.linear.x = V
@@ -305,6 +368,14 @@ class Navigator:
     def get_current_plan_time(self):
         t = (rospy.get_rostime()-self.current_plan_start_time).to_sec()
         return max(0.0, t)  # clip negative time to 0
+
+    def go_to_next_request(self):
+        goal_pose = self.delivery_locations[self.requests[0]]
+        if goal_pose.x != self.x_g or goal_pose.y != self.y_g or goal_pose.theta != self.theta_g:
+            self.x_g = goal_pose.x
+            self.y_g = goal_pose.y
+            self.theta_g = goal_pose.theta
+            self.replan()
 
     def replan(self):
         """
@@ -351,12 +422,6 @@ class Navigator:
             rospy.loginfo("NAVIGATOR: len(path_planned) attempt failed. Switching to park. Try a new path.")
             self.switch_mode(Mode.PARK)
             return
-
-        # moved this above
-        # if len(planned_path) < 4:
-        #     rospy.loginfo("Path too short to track")
-        #     self.switch_mode(Mode.PARK)
-        #     return
 
         # Smooth and generate a trajectory
         traj_new, t_new = compute_smoothed_traj(planned_path, self.v_des, self.spline_alpha, self.traj_dt)
@@ -434,12 +499,17 @@ class Navigator:
                     self.replan() # we aren't near the goal but we thought we should have been, so replan
                 self.displayETA()
             elif self.mode == Mode.PARK:
-                #if self.at_goal():
-                    # forget about goal:
-				self.x_g = None
-				self.y_g = None
-				self.theta_g = None
-				self.switch_mode(Mode.IDLE)
+                if self.at_goal():
+                    # Forget about the current goal
+                    self.x_g = None
+                    self.y_g = None
+                    self.theta_g = None
+                    # Check to see if there are more places that must be visited 
+                    self.requests.pop(0)
+                    if len(self.requests) == 0:
+                        self.mode = Mode.IDLE
+                    else:
+                        self.go_to_next_request()
             elif self.mode == Mode.ROLL:
                 rospy.loginfo("Rolling...")
                 if self.has_rolled():
@@ -450,9 +520,91 @@ class Navigator:
                     self.mode = Mode.TRACK
                     self.first_seen_time = -1
 
+            
+            # publish vendor and robot locations
+            self.publish_vendor_locs()
+            self.publish_robot_loc()
+
 
             self.publish_control()
             rate.sleep()
+
+    ########## RVIZ VISUALIZATION ##########
+    
+    def publish_vendor_locs(self):
+
+        for name,loc in self.delivery_locations.items():
+            # add marker
+            marker = Marker()
+
+            marker.header.frame_id = "/map"
+            marker.header.stamp = rospy.Time()
+
+            # so we don't create millions of markers over time
+            if name in self.vendor_marker_ids.keys():
+                marker.id = self.vendor_marker_ids[name]
+            else:
+                next_avail_id = len(self.vendor_marker_ids) + 1 # robot is 0, so increment from 1
+                marker.id = next_avail_id
+                self.vendor_marker_ids[name] = next_avail_id
+
+            marker.type = 1 # cube
+            marker.pose.position.x = loc.x
+            marker.pose.position.y = loc.y
+            #marker.pose.position.x = loc[0]
+            #marker.pose.position.y = loc[1]
+            marker.pose.position.z = 0.1
+
+            marker.pose.orientation.x = 0.0
+            marker.pose.orientation.y = 0.0
+            marker.pose.orientation.z = 0.0
+            marker.pose.orientation.w = 1.0
+
+            marker.scale.x = 0.2
+            marker.scale.y = 0.2
+            marker.scale.z = 0.2
+            if name == HOME_LOCATION:
+                marker.color.a = 1.0
+                marker.color.r = 1.0
+                marker.color.g = 0.0
+                marker.color.b = 0.0
+            else:
+                marker.color.a = 1.0 # Don't forget to set the alpha!
+                marker.color.r = 0.5
+                marker.color.g = 0.0
+                marker.color.b = 1.0
+            
+            self.vis_pub.publish(marker)
+
+
+    def publish_robot_loc(self):
+        marker = Marker()
+
+        marker.header.frame_id = "base_footprint"
+        marker.header.stamp = rospy.Time()
+
+        marker.id = 0 # robot marker id is 0
+
+        marker.type = 0 # arrow
+
+        marker.pose.position.x = 0.0 
+        marker.pose.position.y = 0.0 
+        marker.pose.position.z = 0.0
+
+        marker.pose.orientation.x = 0.0
+        marker.pose.orientation.y = 0.0
+        marker.pose.orientation.z = 0.0
+        marker.pose.orientation.w = 1.0
+
+        marker.scale.x = 0.4
+        marker.scale.y = 0.1
+        marker.scale.z = 0.1
+
+        marker.color.a = 1.0 # Don't forget to set the alpha!
+        marker.color.r = 0.5
+        marker.color.g = 1.0
+        marker.color.b = 0.5
+        self.vis_pub.publish(marker)
 
     def displayETA(self):
         marker = Marker()
