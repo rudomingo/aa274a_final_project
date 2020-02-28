@@ -5,7 +5,6 @@
   <rosparam param="rviz">true</rosparam>
   <rosparam param="map">true</rosparam>
 
-  <node pkg="asl_turtlebot" type="supervisor.py" name="turtlebot_supervisor" output="screen"/>
   <node pkg="asl_turtlebot" type="navigator.py" name="turtlebot_navigator" output="screen"/>
 
   <param name="robot_description" command="$(find xacro)/xacro.py $(find asl_turtlebot)/urdf/turtlebot3_$(arg model).urdf.xacro" />
