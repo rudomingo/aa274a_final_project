@@ -26,7 +26,7 @@ USE_TF = True
 # minimum score for positive detection
 MIN_SCORE = .75
 
-RECOGNIZE = 'digits' # set this either 'digits' or 'objects'
+RECOGNIZE = 'objects' # set this either 'digits' or 'objects'
 
 def load_object_labels(filename):
     """ loads the coco object readable name """
