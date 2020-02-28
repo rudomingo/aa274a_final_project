@@ -22,14 +22,14 @@ from asl_turtlebot.msg import DetectedObject, DetectedObjectList
 
 # Define the objects that we want to be able to detect. Save them in a set for easy lookup
 #OBJECTS_OF_INTEREST = {'wine_glass', 'airplane', 'banana', 'cake'} 
-OBJECTS_OF_INTEREST = {'donut', 'bird'}
-HOME_LOCATION = 'bird'
+OBJECTS_OF_INTEREST = {'519', '345'}
+HOME_LOCATION = '345'
 
 # Statically define the number of locations that the robot should have explored
 NUM_LOCATIONS_EXPLORED = len(OBJECTS_OF_INTEREST)
 
 OBJECT_CONFIDENCE_THESH = 0.5
-OBJECT_DISTANCE_THESH = 15
+OBJECT_DISTANCE_THESH = 8.5
 
 # state machine modes, not all implemented
 
@@ -96,7 +96,8 @@ class Navigator:
         # threshold at which navigator switches from trajectory to pose control
         self.near_thresh = 0.3
         self.at_thresh = 0.03
-        self.at_thresh_theta = 0.05
+        #self.at_thresh_theta = 0.05
+        self.at_thresh_theta = 0.1
 
         # trajectory smoothing
         self.spline_alpha = 0.15
@@ -198,7 +199,7 @@ class Navigator:
                                                   self.map_origin[0],
                                                   self.map_origin[1],
                                                   10, # NOTE: Made the window size larger
-                                                  0.4) # NOTE: Made the probability lower
+                                                  self.map_probs) # NOTE: Made the probability lower
 
             if self.x_g is not None:
                 # if we have a goal to plan to, replan
@@ -238,7 +239,7 @@ class Navigator:
             # Check to see if the object has not already been seen and if it is an object of interest
             if name not in self.delivery_locations.keys() and name in OBJECTS_OF_INTEREST:
                 # Ensure that the object detected is of high confidence and close to the robot
-                if obj.confidence > OBJECT_CONFIDENCE_THESH and obj.distance < OBJECT_DISTANCE_THESH:
+                if obj.confidence < OBJECT_CONFIDENCE_THESH and obj.distance < OBJECT_DISTANCE_THESH:
                     # Add the object to the robot list
                     currentPose = Pose2D()
                     currentPose.x = self.x
@@ -270,8 +271,8 @@ class Navigator:
                     self.requests.append(location)
 
 	    if len(self.requests) > 0:
-            self.requests.append(HOME_LOCATION)
-            self.go_to_next_request()
+                self.requests.append(HOME_LOCATION)
+                self.go_to_next_request()
 
     def init_stop_sign(self):
         self.stop_sign_roll_start = rospy.get_rostime()
@@ -296,6 +297,7 @@ class Navigator:
         returns whether the robot has reached the goal position with enough
         accuracy to return to idle state
         """
+        print("{}\t{}".format(linalg.norm(np.array([self.x-self.x_g, self.y-self.y_g])), abs(wrapToPi(self.theta - self.theta_g))))
         return (linalg.norm(np.array([self.x-self.x_g, self.y-self.y_g])) < self.near_thresh and abs(wrapToPi(self.theta - self.theta_g)) < self.at_thresh_theta)
 
     def aligned(self):
@@ -355,7 +357,7 @@ class Navigator:
         elif self.mode == Mode.ALIGN:
             V, om = self.heading_controller.compute_control(self.x, self.y, self.theta, t)
         elif self.mode == Mode.EXPLORE:
-            pass
+            return
         else:
             V = 0.
             om = 0.
@@ -476,7 +478,8 @@ class Navigator:
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
                 self.current_plan = []
                 rospy.loginfo("NAVIGATOR: waiting for state info")
-                self.switch_mode(Mode.IDLE)
+                if (self.mode != Mode.EXPLORE):
+                    self.switch_mode(Mode.IDLE)
                 print e
                 pass
 
@@ -504,11 +507,10 @@ class Navigator:
                     self.x_g = None
                     self.y_g = None
                     self.theta_g = None
+                    self.switch_mode(Mode.IDLE)
                     # Check to see if there are more places that must be visited 
                     self.requests.pop(0)
-                    if len(self.requests) == 0:
-                        self.mode = Mode.IDLE
-                    else:
+                    if len(self.requests) > 0:
                         self.go_to_next_request()
             elif self.mode == Mode.ROLL:
                 rospy.loginfo("Rolling...")
