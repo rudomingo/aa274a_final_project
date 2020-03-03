@@ -187,10 +187,10 @@ class AStar(object):
             self.closed_set.add(current_state)
 
             for n in self.get_neighbors(current_state):
-                '''
                 if (n in self.closed_set):
                     continue
                 tentative_cost_to_arrive = self.cost_to_arrive[current_state] + self.distance(current_state, n)
+                '''
                 if (n not in self.open_set or tentative_cost_to_arrive < self.cost_to_arrive[n]):
                     self.open_set.add(n)
                     self.came_from[n] = current_state
