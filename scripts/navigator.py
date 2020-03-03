@@ -198,7 +198,7 @@ class Navigator:
                                                   self.map_height,
                                                   self.map_origin[0],
                                                   self.map_origin[1],
-                                                  10, # NOTE: Made the window size larger
+                                                  8, # NOTE: Made the window size larger
                                                   self.map_probs) # NOTE: Made the probability lower
 
             if self.x_g is not None:
