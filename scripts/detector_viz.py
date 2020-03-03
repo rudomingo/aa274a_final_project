@@ -26,7 +26,7 @@ class DetectorViz:
         rospy.Subscriber('/detector/objects', DetectedObjectList, self.detected_objects_name_callback, queue_size=10)
         self.detected_objects = None
         rospy.Subscriber('/camera_relay/image_raw', Image, self.camera_callback, queue_size=1, buff_size=2**24)
-        rospy.Subscriber('/camera_relay/image_raw/compressed', CompressedImage, self.compressed_camera_callback, queue_size=1, buff_size=2**24)
+        rospy.Subscriber('/camera_relay/image/compressed', CompressedImage, self.compressed_camera_callback, queue_size=1, buff_size=2**24)
 
     def load_image_into_numpy_array(self, img):
         """ converts opencv image into a numpy array """
