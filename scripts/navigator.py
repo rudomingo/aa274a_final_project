@@ -22,14 +22,14 @@ from asl_turtlebot.msg import DetectedObject, DetectedObjectList
 
 # Define the objects that we want to be able to detect. Save them in a set for easy lookup
 #OBJECTS_OF_INTEREST = {'wine_glass', 'airplane', 'banana', 'cake'} 
-OBJECTS_OF_INTEREST = {'519', '345'}
+OBJECTS_OF_INTEREST = {'707', '345'}
 HOME_LOCATION = '345'
 
 # Statically define the number of locations that the robot should have explored
 NUM_LOCATIONS_EXPLORED = len(OBJECTS_OF_INTEREST)
 
 OBJECT_CONFIDENCE_THESH = 0.5
-OBJECT_DISTANCE_THESH = 0.5
+OBJECT_DISTANCE_THESH = 8.5
 
 # state machine modes, not all implemented
 
@@ -78,7 +78,7 @@ class Navigator:
 
         # plan parameters
         self.plan_resolution =  0.1
-        self.plan_horizon = 15
+        self.plan_horizon = 20 # NOTE: Changed this to incraese the plan horizon for testing
 
         # time when we started following the plan
         self.current_plan_start_time = rospy.get_rostime()
@@ -96,7 +96,8 @@ class Navigator:
         # threshold at which navigator switches from trajectory to pose control
         self.near_thresh = 0.3
         self.at_thresh = 0.03
-        self.at_thresh_theta = 0.05
+        #self.at_thresh_theta = 0.05
+        self.at_thresh_theta = 0.1
 
         # trajectory smoothing
         self.spline_alpha = 0.15
@@ -198,7 +199,7 @@ class Navigator:
                                                   self.map_origin[0],
                                                   self.map_origin[1],
                                                   10, # NOTE: Made the window size larger
-                                                  0.4) # NOTE: Made the probability lower
+                                                  self.map_probs) # NOTE: Made the probability lower
 
             if self.x_g is not None:
                 # if we have a goal to plan to, replan
@@ -238,7 +239,7 @@ class Navigator:
             # Check to see if the object has not already been seen and if it is an object of interest
             if name not in self.delivery_locations.keys() and name in OBJECTS_OF_INTEREST:
                 # Ensure that the object detected is of high confidence and close to the robot
-                if obj.confidence > OBJECT_CONFIDENCE_THESH and obj.distance < OBJECT_DISTANCE_THESH:
+                if obj.confidence < OBJECT_CONFIDENCE_THESH and obj.distance < OBJECT_DISTANCE_THESH:
                     # Add the object to the robot list
                     currentPose = Pose2D()
                     currentPose.x = self.x
@@ -270,8 +271,8 @@ class Navigator:
                     self.requests.append(location)
 
 	    if len(self.requests) > 0:
-            self.requests.append(HOME_LOCATION)
-            self.go_to_next_request()
+                self.requests.append(HOME_LOCATION)
+                self.go_to_next_request()
 
     def init_stop_sign(self):
         self.stop_sign_roll_start = rospy.get_rostime()
@@ -355,7 +356,7 @@ class Navigator:
         elif self.mode == Mode.ALIGN:
             V, om = self.heading_controller.compute_control(self.x, self.y, self.theta, t)
         elif self.mode == Mode.EXPLORE:
-            pass
+            return
         else:
             V = 0.
             om = 0.
@@ -372,6 +373,7 @@ class Navigator:
     def go_to_next_request(self):
         goal_pose = self.delivery_locations[self.requests[0]]
         if goal_pose.x != self.x_g or goal_pose.y != self.y_g or goal_pose.theta != self.theta_g:
+            rospy.loginfo("NAVIGATOR: Going to a new location")
             self.x_g = goal_pose.x
             self.y_g = goal_pose.y
             self.theta_g = goal_pose.theta
@@ -476,7 +478,8 @@ class Navigator:
             except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException) as e:
                 self.current_plan = []
                 rospy.loginfo("NAVIGATOR: waiting for state info")
-                self.switch_mode(Mode.IDLE)
+                if (self.mode != Mode.EXPLORE):
+                    self.switch_mode(Mode.IDLE)
                 print e
                 pass
 
@@ -501,14 +504,13 @@ class Navigator:
             elif self.mode == Mode.PARK:
                 if self.at_goal():
                     # Forget about the current goal
+                    self.requests.pop(0)
                     self.x_g = None
                     self.y_g = None
                     self.theta_g = None
+                    self.switch_mode(Mode.IDLE)
                     # Check to see if there are more places that must be visited 
-                    self.requests.pop(0)
-                    if len(self.requests) == 0:
-                        self.mode = Mode.IDLE
-                    else:
+                    if len(self.requests) > 0:
                         self.go_to_next_request()
             elif self.mode == Mode.ROLL:
                 rospy.loginfo("Rolling...")
