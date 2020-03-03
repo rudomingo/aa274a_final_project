@@ -22,14 +22,14 @@ from asl_turtlebot.msg import DetectedObject, DetectedObjectList
 
 # Define the objects that we want to be able to detect. Save them in a set for easy lookup
 #OBJECTS_OF_INTEREST = {'wine_glass', 'airplane', 'banana', 'cake'} 
-OBJECTS_OF_INTEREST = {'donut', 'bird'}
-HOME_LOCATION = 'bird'
+OBJECTS_OF_INTEREST = {'519', '345'}
+HOME_LOCATION = '345'
 
 # Statically define the number of locations that the robot should have explored
 NUM_LOCATIONS_EXPLORED = len(OBJECTS_OF_INTEREST)
 
 OBJECT_CONFIDENCE_THESH = 0.5
-OBJECT_DISTANCE_THESH = 15
+OBJECT_DISTANCE_THESH = 0.5
 
 # state machine modes, not all implemented
 
