@@ -78,7 +78,7 @@ class Navigator:
 
         # plan parameters
         self.plan_resolution =  0.1
-        self.plan_horizon = 15
+        self.plan_horizon = 20 # NOTE: Changed this to incraese the plan horizon for testing
 
         # time when we started following the plan
         self.current_plan_start_time = rospy.get_rostime()
@@ -373,6 +373,7 @@ class Navigator:
     def go_to_next_request(self):
         goal_pose = self.delivery_locations[self.requests[0]]
         if goal_pose.x != self.x_g or goal_pose.y != self.y_g or goal_pose.theta != self.theta_g:
+            rospy.loginfo("NAVIGATOR: Going to a new location")
             self.x_g = goal_pose.x
             self.y_g = goal_pose.y
             self.theta_g = goal_pose.theta
@@ -503,12 +504,12 @@ class Navigator:
             elif self.mode == Mode.PARK:
                 if self.at_goal():
                     # Forget about the current goal
+                    self.requests.pop(0)
                     self.x_g = None
                     self.y_g = None
                     self.theta_g = None
                     self.switch_mode(Mode.IDLE)
                     # Check to see if there are more places that must be visited 
-                    self.requests.pop(0)
                     if len(self.requests) > 0:
                         self.go_to_next_request()
             elif self.mode == Mode.ROLL:
