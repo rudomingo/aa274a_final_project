@@ -29,7 +29,7 @@ HOME_LOCATION = '345'
 NUM_LOCATIONS_EXPLORED = len(OBJECTS_OF_INTEREST)
 
 OBJECT_CONFIDENCE_THESH = 0.5
-OBJECT_DISTANCE_THESH = 8.5
+OBJECT_DISTANCE_THESH = 2.0
 
 # state machine modes, not all implemented
 
@@ -253,6 +253,17 @@ class Navigator:
                     if len(self.delivery_locations.keys()) == NUM_LOCATIONS_EXPLORED:
                         rospy.loginfo("NAVIGATOR: Found all delivery locations.")
                         self.switch_mode(Mode.IDLE)
+
+            # to be tested: if object detected again, update location in case opponent moved it
+            elif name in self.delivery_locations.keys():
+                prev_loc = self.delivery_locations[name]
+                dist = math.sqrt((prev_loc.x-self.x)**2 + (prev_loc.y - self.y)**2)
+                if dist > 8: # todo: tune this distance threshold
+                    self.delivery_locations[name].x = self.x
+                    self.delivery_locations[name].y = self.y
+                    self.delivery_locations[name].theta = self.theta
+                    rospy.loginfo("NAVIGATOR: Updating detected object location to current position")
+
 
     def request_callback(self, msg):
         rospy.loginfo("NAVIGATOR: Receiving request {}".format(msg.data))
