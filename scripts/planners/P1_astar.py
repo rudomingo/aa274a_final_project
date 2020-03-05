@@ -190,6 +190,7 @@ class AStar(object):
                 if (n in self.closed_set):
                     continue
                 tentative_cost_to_arrive = self.cost_to_arrive[current_state] + self.distance(current_state, n)
+                '''
                 if (n not in self.open_set or tentative_cost_to_arrive < self.cost_to_arrive[n]):
                     self.open_set.add(n)
                     self.came_from[n] = current_state
@@ -203,7 +204,6 @@ class AStar(object):
                 self.came_from[n] = current_state
                 self.cost_to_arrive[n] = tentative_cost_to_arrive
                 self.est_cost_through[n] = tentative_cost_to_arrive + self.distance(n, self.x_goal)
-                '''
         return False
         ########## Code ends here ##########
 
