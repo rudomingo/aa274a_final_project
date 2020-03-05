@@ -28,8 +28,9 @@ HOME_LOCATION = '345'
 # Statically define the number of locations that the robot should have explored
 NUM_LOCATIONS_EXPLORED = len(OBJECTS_OF_INTEREST)
 
-OBJECT_CONFIDENCE_THESH = 0.5
+OBJECT_CONFIDENCE_THESH = 1e-10
 OBJECT_DISTANCE_THESH = 2
+BOUNDING_BOX_AREA_THRESH = 17000
 
 # state machine modes, not all implemented
 
@@ -94,10 +95,10 @@ class Navigator:
         self.start_pos_thresh = 0.2     # threshold to be far enough into the plan to recompute it
 
         # threshold at which navigator switches from trajectory to pose control
-        self.near_thresh = 0.3
-        self.at_thresh = 0.03
-        #self.at_thresh_theta = 0.05
-        self.at_thresh_theta = 0.1
+        self.near_thresh = 0.2
+        self.at_thresh = 0.02
+        self.at_thresh_theta = 0.05
+        #self.at_thresh_theta = 0.1
 
         # trajectory smoothing
         self.spline_alpha = 0.15
@@ -233,13 +234,22 @@ class Navigator:
                 rospy.loginfo("Initializing roll and changing v_max and v_des")
                 self.init_stop_sign()
 
+
+    def calculate_bounding_box_area(self, corners):
+        ymin, xmin, ymax, xmax = corners
+        return (ymax-ymin) * (xmax-xmin)
+
+
     def detected_objects_callback(self, msg):
         # Iterate through all of the objects found by the detector
         for name,obj in zip(msg.objects, msg.ob_msgs):
             # Check to see if the object has not already been seen and if it is an object of interest
             if name not in self.delivery_locations.keys() and name in OBJECTS_OF_INTEREST:
+                print(self.calculate_bounding_box_area(obj.corners))
                 # Ensure that the object detected is of high confidence and close to the robot
-                if obj.confidence < OBJECT_CONFIDENCE_THESH and obj.distance < OBJECT_DISTANCE_THESH:
+                if (obj.confidence < OBJECT_CONFIDENCE_THESH 
+                   and obj.distance < OBJECT_DISTANCE_THESH
+                   and self.calculate_bounding_box_area(obj.corners) > BOUNDING_BOX_AREA_THRESH):
                     # Add the object to the robot list
                     currentPose = Pose2D()
                     currentPose.x = self.x
