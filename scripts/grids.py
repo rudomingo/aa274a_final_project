@@ -73,6 +73,7 @@ class StochOccupancyGrid2D(object):
 
                     # self.probs is stored as m*n array instead of mxn matrix
                     p_total *= max(0.0, (1.0-probability))
+                    #p_total *= 1.0-probability
 
 
         return (1.0-p_total) < self.thresh # (1 - p_free) = p_occupied < threshold
