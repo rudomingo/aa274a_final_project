@@ -24,7 +24,7 @@
     <node pkg="gmapping" type="slam_gmapping" name="turtlebot3_slam_gmapping" output="screen">
         <param name="base_frame" value="base_footprint"/>
         <param name="odom_frame" value="odom"/>
-        <param name="map_update_interval" value="0.05"/>
+        <param name="map_update_interval" value="0.01"/>
         <param name="maxUrange" value="4.0"/>
         <param name="minimumScore" value="100"/>
         <param name="linearUpdate" value="0.2"/>
