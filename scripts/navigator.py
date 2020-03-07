@@ -5,6 +5,7 @@ from nav_msgs.msg import OccupancyGrid, MapMetaData, Path
 from geometry_msgs.msg import Twist, Pose2D, PoseStamped
 from std_msgs.msg import String
 import tf
+import math
 import numpy as np
 from numpy import linalg
 from utils import wrapToPi
@@ -247,10 +248,15 @@ class Navigator:
             if name not in self.delivery_locations.keys() and name in OBJECTS_OF_INTEREST:
                 print(self.calculate_bounding_box_area(obj.corners))
                 # Ensure that the object detected is of high confidence and close to the robot
+                print('Detected object info')
+                print(obj.confidence)
+                print(obj.distance)
+                print(self.calculate_bounding_box_area(obj.corners))
                 if (obj.confidence < OBJECT_CONFIDENCE_THESH 
                    and obj.distance < OBJECT_DISTANCE_THESH
                    and self.calculate_bounding_box_area(obj.corners) > BOUNDING_BOX_AREA_THRESH):
                     # Add the object to the robot list
+                    print('adding object')
                     currentPose = Pose2D()
                     currentPose.x = self.x
                     currentPose.y = self.y
